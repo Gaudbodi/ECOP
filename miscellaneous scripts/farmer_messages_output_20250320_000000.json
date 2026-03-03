@@ -1,0 +1,82 @@
+[
+  {
+    "farmer_name": "Kwame Asante",
+    "phone_number": "+233240000001",
+    "network_operator": "MTNGMN",
+    "preferred_language": "en",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "generated_audio_messages\\Kwame_Asante_20250320_maize_114892.mp3"
+  },
+  {
+    "farmer_name": "Femi Adebayo",
+    "phone_number": "+233240000003",
+    "network_operator": "MTNGMN",
+    "preferred_language": "en",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "generated_audio_messages\\Femi_Adebayo_20250320_maize_610755.mp3"
+  },
+  {
+    "farmer_name": "Esi Brew",
+    "phone_number": "+233240000006",
+    "network_operator": "MTNGMN",
+    "preferred_language": "ak",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "GENERATION_FAILED"
+  },
+  {
+    "farmer_name": "Ngozi Okafor",
+    "phone_number": "+233240000008",
+    "network_operator": "MTNGMN",
+    "preferred_language": "ig",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "GENERATION_FAILED"
+  },
+  {
+    "farmer_name": "Fatima Diallo",
+    "phone_number": "+233240000010",
+    "network_operator": "MTNGMN",
+    "preferred_language": "fr",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "generated_audio_messages\\Fatima_Diallo_20250320_maize_647223.mp3"
+  },
+  {
+    "farmer_name": "Aba Otoo",
+    "phone_number": "+233240000012",
+    "network_operator": "MTNGMN",
+    "preferred_language": "ak",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "GENERATION_FAILED"
+  },
+  {
+    "farmer_name": "Serwaa Akoto",
+    "phone_number": "+233240000014",
+    "network_operator": "MTNGMN",
+    "preferred_language": "en",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "generated_audio_messages\\Serwaa_Akoto_20250320_maize_556688.mp3"
+  },
+  {
+    "farmer_name": "Abena Konadu",
+    "phone_number": "+233240000016",
+    "network_operator": "MTNGMN",
+    "preferred_language": "ak",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "GENERATION_FAILED"
+  },
+  {
+    "farmer_name": "Akosua Yeboah",
+    "phone_number": "+233240000018",
+    "network_operator": "MTNGMN",
+    "preferred_language": "ak",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "GENERATION_FAILED"
+  },
+  {
+    "farmer_name": "Efua Nkrumah",
+    "phone_number": "+233240000020",
+    "network_operator": "MTNGMN",
+    "preferred_language": "en",
+    "sms_text": "Apply NPK 2-3 weeks after planting (100 kg per acre/side placement/5 cm from the plant/ 5g per plant. Apply when there is adequate moisture in the soil",
+    "voice_message_path": "generated_audio_messages\\Efua_Nkrumah_20250320_maize_229985.mp3"
+  }
+]

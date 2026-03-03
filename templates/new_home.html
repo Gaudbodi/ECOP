@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-CoP Unified Command Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%);
+            color: #e0e0e0;
+            overflow: hidden; height: 100vh;
+        }
+
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: flex; flex-direction: column; }
+        
+        .header { padding: 30px; text-align: left; pointer-events: auto; background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); }
+        .header h1 { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; letter-spacing: 3px; color: #00d4ff; text-shadow: 0 0 20px rgba(0, 212, 255, 0.5); }
+
+        .glass-card {
+            background: rgba(20, 20, 35, 0.6); backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 15px;
+            padding: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+        }
+
+        #stats-bar { position: absolute; top: 100px; left: 30px; display: flex; gap: 20px; }
+        .stat-item { text-align: center; min-width: 120px; }
+        .stat-value { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: #fff; }
+        .stat-label { font-size: 0.7rem; color: #00d4ff; text-transform: uppercase; margin-top: 5px; }
+
+        #responder-panel { position: absolute; bottom: 30px; left: 30px; width: 320px; }
+        .responder-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .status-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+        .status-ready { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+        .status-busy { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+
+        #control-panel { position: absolute; top: 100px; right: 30px; width: 400px; max-height: calc(100vh - 150px); overflow-y: auto; }
+        .panel-section { margin-bottom: 25px; }
+        .panel-title { font-family: 'Orbitron', sans-serif; font-size: 0.9rem; color: #00d4ff; margin-bottom: 15px; text-transform: uppercase; }
+
+        input, select, textarea { width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 0.9rem; margin-bottom: 10px; }
+        label { font-size: 0.75rem; color: #888; display: block; margin-bottom: 5px; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: 'Orbitron', sans-serif; text-transform: uppercase; }
+        .btn-primary { background: #00b4d8; color: #fff; }
+        .btn-danger { background: #e74c3c; color: #fff; }
+
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0f; z-index: 5000; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: rgba(30, 30, 45, 0.9); backdrop-filter: blur(20px); padding: 50px; border-radius: 20px; border: 1px solid rgba(0, 212, 255, 0.3); width: 450px; text-align: center; }
+
+        #notification-toast { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); padding: 15px 40px; border-radius: 50px; background: rgba(0, 212, 255, 0.9); color: #000; font-weight: bold; z-index: 6000; display: none; backdrop-filter: blur(10px); }
+        .loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0f; z-index: 4000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease; }
+        .loading-screen.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+        .spinner { width: 60px; height: 60px; border: 4px solid #00d4ff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        
+        .process-animation-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 15, 0.95); z-index: 4500;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(15px);
+        }
+        .process-animation-overlay.active { display: flex; }
+        .process-animation-title { font-family: 'Orbitron'; color: #00d4ff; margin-bottom: 30px; letter-spacing: 2px; }
+        .process-step { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; opacity: 0.3; transition: all 0.3s; width: 300px; }
+        .process-step.active { opacity: 1; transform: scale(1.05); }
+        .process-step.completed { opacity: 0.6; color: #2ecc71; }
+        .process-icon { width: 24px; height: 24px; border-radius: 50%; border: 2px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+        
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2 style="font-family: 'Orbitron'; color: #00d4ff; margin-bottom: 30px; letter-spacing: 5px;">E-CoP ACCESS</h2>
+            <select id="user-agency">
+                <option value="Ghana Meteo Agency">GMet Agency (Weather)</option>
+                <option value="NADMO Disaster Relief">NADMO (Disaster)</option>
+                <option value="Ghana Fire Service">Ghana Fire Service</option>
+                <option value="MoCD Operations">MoCD Operations</option>
+            </select>
+            <input type="text" placeholder="OPERATOR ID" value="SENTINEL-01">
+            <button class="btn-primary" onclick="handleLogin()" style="margin-top: 20px;">INITIALIZE COMMAND</button>
+        </div>
+    </div>
+
+    <div id="loading-screen" class="loading-screen hidden">
+        <div class="spinner"></div>
+        <p style="margin-top: 20px; font-family: 'Orbitron'; letter-spacing: 2px;">SYNCHRONIZING MAP DATA</p>
+    </div>
+
+    <div id="process-animation" class="process-animation-overlay">
+        <h2 class="process-animation-title" id="process-title">SYNCING WITH GMET</h2>
+        <div id="process-steps-container"></div>
+    </div>
+
+    <div id="notification-toast">ALERT BROADCASTED</div>
+    <div id="canvas-container"></div>
+
+    <div class="overlay">
+        <div class="header">
+            <h1>UNIFIED EMERGENCY COMMAND</h1>
+            <p id="active-agency-label" style="font-size: 0.7rem; color: #888; margin-top: 5px;">AGENCY: INITIALIZING...</p>
+        </div>
+
+        <div id="stats-bar">
+            <div class="stat-item"><div class="stat-value" id="active-alerts-count">0</div><div class="stat-label">Active Alerts</div></div>
+            <div class="stat-item"><div class="stat-value" id="forwarded-count">0</div><div class="stat-label">Forwarded</div></div>
+            <div class="stat-item"><div class="stat-value" style="color: #2ecc71;">ONLINE</div><div class="stat-label">System State</div></div>
+        </div>
+
+        <div id="responder-panel" class="glass-card">
+            <h4 class="panel-title">Responder Readiness</h4>
+            <div id="responder-list"></div>
+        </div>
+
+        <div id="control-panel" class="glass-card">
+            <div class="panel-section">
+                <h4 class="panel-title">Data Sources</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn-primary" onclick="fetchGMet()">Fetch GMet</button>
+                    <button class="btn-primary" onclick="showCreator()">New CAP</button>
+                </div>
+            </div>
+
+            <div id="cap-creator" class="panel-section" style="display: none;">
+                <h4 class="panel-title">Structured CAP Creator</h4>
+                <label>Headline</label><input type="text" id="cap-headline" placeholder="ALERT TITLE">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div><label>Event</label><select id="cap-event"><option>Flood</option><option>Fire</option><option>Storm</option></select></div>
+                    <div><label>Severity</label><select id="cap-severity"><option>Extreme</option><option>Severe</option><option>Moderate</option></select></div>
+                </div>
+                <label>Affected Area</label><input type="text" id="cap-area" placeholder="e.g. Accra Central">
+                <label>Instructions</label><textarea id="cap-desc" rows="3"></textarea>
+                <button class="btn-danger" onclick="submitCAP()">Broadcast JSON</button>
+            </div>
+
+            <div id="alert-display" class="panel-section">
+                <h4 class="panel-title">Active Alert Detail</h4>
+                <div id="alert-content">
+                    <div class="alert-headline" id="disp-headline">No Active Alert</div>
+                    <div class="alert-meta" id="disp-agency">Source: --</div>
+                    <div class="alert-meta" id="disp-area">Area: --</div>
+                    <p style="font-size: 0.85rem; margin-top: 10px;" id="disp-desc">Select a source to begin monitoring.</p>
+                    <button class="btn-primary" style="margin-top: 20px;" onclick="forwardToResponders()">Forward to Responders</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+
+    <script>
+        let scene, camera, renderer, ghanaMapGroup, weatherParticles, weatherGlow, socket;
+        let mapCenter = { x: 0, y: 0 }, mapScaleFactor = 1, currentUserAgency = "Public Safety";
+
+        function showNotification(msg, isError = false) {
+            const t = document.getElementById('notification-toast');
+            if (!t) return;
+            t.textContent = msg;
+            t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(0, 212, 255, 0.9)';
+            t.style.display = 'block';
+            gsap.fromTo(t, { y: -50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 });
+            setTimeout(() => {
+                gsap.to(t, { y: -50, opacity: 0, duration: 0.5, onComplete: () => t.style.display = 'none' });
+            }, 3000);
+        }
+
+        class ProcessAnimationManager {
+            constructor() {
+                this.overlay = document.getElementById('process-animation');
+                this.container = document.getElementById('process-steps-container');
+            }
+            show(title) {
+                this.container.innerHTML = '';
+                this.overlay.classList.add('active');
+                document.getElementById('process-title').textContent = title;
+            }
+            addStep(msg, isComplete = false) {
+                const step = document.createElement('div');
+                step.className = 'process-step active' + (isComplete ? ' completed' : '');
+                step.innerHTML = `<div class="process-icon">${isComplete ? '✓' : '•'}</div><div class="process-text">${msg}</div>`;
+                Array.from(this.container.children).forEach(el => el.classList.add('completed'));
+                this.container.appendChild(step);
+                if (isComplete) setTimeout(() => this.overlay.classList.remove('active'), 2000);
+            }
+        }
+        const processAnimation = new ProcessAnimationManager();
+
+        if (typeof io !== 'undefined') {
+            socket = io('/ui_client');
+            socket.on('progress_update', (data) => {
+                if (data.step === 0) processAnimation.show("GMET SYSTEM SYNC");
+                processAnimation.addStep(data.message, data.step === 'complete');
+                if (data.step === 'error') {
+                    showNotification(data.message, true);
+                    processAnimation.overlay.classList.remove('active');
+                }
+            });
+            socket.on('operator_notification', (data) => {
+                if (data.agency !== currentUserAgency) {
+                    showNotification(`BROADCAST: ${data.agency}`);
+                    updateAlertDisplay(data.data);
+                }
+            });
+        }
+
+        function init3D() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const dl = new THREE.DirectionalLight(0x00d4ff, 1); dl.position.set(10, 20, 10); scene.add(dl);
+
+            ghanaMapGroup = new THREE.Group();
+            const commandUnit = new THREE.Group();
+            commandUnit.add(ghanaMapGroup);
+            scene.add(commandUnit);
+            window.commandUnit = commandUnit;
+
+            camera.position.set(0, 15, 20); camera.lookAt(0, 0, 0);
+
+            loadMapData(); animate();
+            
+            gsap.to(commandUnit.position, { y: 0.5, duration: 3, repeat: -1, yoyo: true, ease: "sine.inOut" });
+            gsap.to(commandUnit.rotation, { x: 0.05, z: 0.05, duration: 5, repeat: -1, yoyo: true, ease: "sine.inOut" });
+        }
+
+        async function loadMapData() {
+            try {
+                const res = await fetch("/static/ghana_regions.json");
+                const geoJsonData = await res.json();
+                
+                const allPoints = [];
+                geoJsonData.features.forEach(feature => {
+                    if (feature.geometry && feature.geometry.coordinates) {
+                        const polygons = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates;
+                        polygons.forEach(polyCoords => {
+                            const ring = polyCoords[0];
+                            if (ring) ring.forEach(coord => allPoints.push(new THREE.Vector2(coord[0], coord[1])));
+                        });
+                    }
+                });
+
+                const boundingBox = new THREE.Box2().setFromPoints(allPoints);
+                mapCenter = boundingBox.getCenter(new THREE.Vector2());
+                const size = boundingBox.getSize(new THREE.Vector2());
+                mapScaleFactor = 15 / Math.max(size.x, size.y);
+
+                const regionMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x006A4E, emissive: 0x001a33, shininess: 30, side: THREE.DoubleSide 
+                });
+                const outlineMaterial = new THREE.LineBasicMaterial({ color: 0xFCD116, transparent: true, opacity: 0.6 });
+
+                geoJsonData.features.forEach(feature => {
+                    if (feature.geometry && feature.geometry.coordinates) {
+                        const polygons = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates;
+                        polygons.forEach(polygonCoordsArray => {
+                            const regionShape = new THREE.Shape();
+                            const exteriorRing = polygonCoordsArray[0];
+                            if (!exteriorRing || exteriorRing.length < 3) return;
+
+                            regionShape.moveTo((exteriorRing[0][0] - mapCenter.x) * mapScaleFactor, (exteriorRing[0][1] - mapCenter.y) * mapScaleFactor);
+                            for (let i = 1; i < exteriorRing.length; i++) {
+                                regionShape.lineTo((exteriorRing[i][0] - mapCenter.x) * mapScaleFactor, (exteriorRing[i][1] - mapCenter.y) * mapScaleFactor);
+                            }
+
+                            const extrudeSettings = { steps: 1, depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 };
+                            const geometry = new THREE.ExtrudeGeometry(regionShape, extrudeSettings);
+                            const mesh = new THREE.Mesh(geometry, regionMaterial.clone());
+                            ghanaMapGroup.add(mesh);
+                            
+                            const edges = new THREE.EdgesGeometry(geometry);
+                            const outline = new THREE.LineSegments(edges, outlineMaterial.clone());
+                            ghanaMapGroup.add(outline);
+                        });
+                    }
+                });
+
+                ghanaMapGroup.rotation.x = -Math.PI / 2;
+                gsap.from(window.commandUnit.scale, { x: 0, y: 0, z: 0, duration: 1.5, ease: "elastic.out(1, 0.75)" });
+
+            } catch (e) { console.error("Map Construction Error:", e); }
+        }
+
+        function createWeatherEffect(x, y, rangeX = 4, rangeY = 4) {
+            if (weatherParticles) ghanaMapGroup.remove(weatherParticles);
+            if (weatherGlow) ghanaMapGroup.remove(weatherGlow);
+            const count = 5000;
+            const linePos = new Float32Array(count * 6);
+            const glowPos = new Float32Array(count * 3);
+            const vels = new Float32Array(count);
+            for (let i = 0; i < count; i++) {
+                const px = x + (Math.random() - 0.5) * rangeX;
+                const py = y + (Math.random() - 0.5) * rangeY;
+                const pz = 5 + Math.random() * 15;
+                linePos[i*6]=px; linePos[i*6+1]=py; linePos[i*6+2]=pz;
+                linePos[i*6+3]=px; linePos[i*6+4]=py; linePos[i*6+5]=pz-0.5;
+                glowPos[i*3]=px; glowPos[i*3+1]=py; glowPos[i*3+2]=pz-0.5;
+                vels[i] = 0.2 + Math.random() * 0.3;
+            }
+            const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
+            const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.BufferAttribute(glowPos, 3));
+            lg.userData = { vels, x, y, rx: rangeX, ry: rangeY };
+            weatherParticles = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
+            weatherGlow = new THREE.Points(gg, new THREE.PointsMaterial({ color: 0x00d4ff, size: 0.05, transparent: true }));
+            ghanaMapGroup.add(weatherParticles); ghanaMapGroup.add(weatherGlow);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (weatherParticles) {
+                const lp = weatherParticles.geometry.attributes.position.array;
+                const gp = weatherGlow.geometry.attributes.position.array;
+                const v = weatherParticles.geometry.userData.vels;
+                const d = weatherParticles.geometry.userData;
+                for (let i = 0; i < v.length; i++) {
+                    lp[i*6+2] -= v[i]; lp[i*6+5] -= v[i]; gp[i*3+2] -= v[i];
+                    if (lp[i*6+5] < 0.5) {
+                        const nx = d.x + (Math.random()-0.5)*d.rx; const ny = d.y + (Math.random()-0.5)*d.ry; const nz = 15 + Math.random()*5;
+                        lp[i*6]=nx; lp[i*6+1]=ny; lp[i*6+2]=nz; lp[i*6+3]=nx; lp[i*6+4]=ny; lp[i*6+5]=nz-0.5;
+                        gp[i*3]=nx; gp[i*3+1]=ny; gp[i*3+2]=nz-0.5;
+                    }
+                }
+                weatherParticles.geometry.attributes.position.needsUpdate = true;
+                weatherGlow.geometry.attributes.position.needsUpdate = true;
+            }
+            renderer.render(scene, camera);
+        }
+
+        function handleLogin() {
+            currentUserAgency = document.getElementById('user-agency').value;
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('active-agency-label').textContent = `AGENCY: ${currentUserAgency.toUpperCase()}`;
+            init3D(); fetchResponders();
+            setTimeout(() => document.getElementById('loading-screen').classList.add('hidden'), 1500);
+        }
+
+        function updateAlertDisplay(data) {
+            document.getElementById('alert-display').style.display = 'block';
+            document.getElementById('disp-headline').textContent = data.headline;
+            document.getElementById('disp-area').textContent = `Area: ${data.areaDesc || data.location_description || 'N/A'}`;
+            document.getElementById('disp-desc').textContent = data.description || data.contextual_advice;
+            
+            if (window.activeHighlight) ghanaMapGroup.remove(window.activeHighlight);
+            
+            const lng = data.longitude || data['cap:longitude'] || -0.19;
+            const lat = data.latitude || data['cap:latitude'] || 5.55;
+            const lx = (lng - mapCenter.x) * mapScaleFactor;
+            const ly = (lat - mapCenter.y) * mapScaleFactor;
+            let rx = 4, ry = 4;
+
+            if (data.areas && data.areas[0] && data.areas[0].polygon && data.areas[0].polygon.length > 0) {
+                const pts = []; const box = new THREE.Box2();
+                data.areas[0].polygon.forEach(p => {
+                    const px_c = (p.longitude || p[1] || 0); const py_c = (p.latitude || p[0] || 0);
+                    const px = (px_c - mapCenter.x)*mapScaleFactor; const py = (py_c - mapCenter.y)*mapScaleFactor;
+                    pts.push(new THREE.Vector2(px, py)); box.expandByPoint(new THREE.Vector2(px, py));
+                });
+                const highlight = new THREE.Group();
+                const fill = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(pts)), new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.3, side: THREE.DoubleSide }));
+                fill.position.z = 0.55; highlight.add(fill);
+                window.activeHighlight = highlight; ghanaMapGroup.add(highlight);
+                rx = Math.max(1, Math.abs(box.max.x - box.min.x)); ry = Math.max(1, Math.abs(box.max.y - box.min.y));
+            } else {
+                const circle = new THREE.Mesh(new THREE.CircleGeometry(1, 32), new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.3 }));
+                circle.position.set(lx, ly, 0.55); window.activeHighlight = circle; ghanaMapGroup.add(circle);
+            }
+
+            gsap.to(window.commandUnit.position, { x: 0, y: 0, z: 0, duration: 1 });
+            gsap.to(window.commandUnit.rotation, { x: 0, y: 0, z: 0, duration: 1 });
+
+            const worldTarget = new THREE.Vector3(lx, 0, -ly);
+            const cameraPos = new THREE.Vector3(lx, 8, -ly + 8);
+            gsap.to(camera.position, { x: cameraPos.x, y: cameraPos.y, z: cameraPos.z, duration: 2, ease: "power3.inOut", onUpdate: () => camera.lookAt(worldTarget) });
+
+            const eventStr = (data.event || data.condition || data['cap:event'] || "").toLowerCase();
+            if (eventStr.includes('rain') || eventStr.includes('flood') || eventStr.includes('storm')) createWeatherEffect(lx, ly, rx, ry);
+        }
+
+        async function fetchGMet() {
+            const sid = "sess_" + Date.now();
+            try { 
+                const res = await fetch(`/fetch_gmet_alerts?session_id=${sid}`); 
+                const d = await res.json(); 
+                if (d.length>0) updateAlertDisplay(d[0]); 
+                else showNotification("NO ACTIVE GMET ALERTS");
+            } catch(e) { showNotification("FETCH FAILED"); }
+        }
+
+        async function submitCAP() {
+            const payload = { sender_agency: currentUserAgency, headline: document.getElementById('cap-headline').value, event: document.getElementById('cap-event').value, areaDesc: document.getElementById('cap-area').value, description: document.getElementById('cap-desc').value, longitude: -0.19, latitude: 5.55 };
+            const res = await fetch('/submit_cap', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            const r = await res.json(); updateAlertDisplay(r.data);
+        }
+
+        async function fetchResponders() {
+            const res = await fetch('/responders'); const d = await res.json();
+            document.getElementById('responder-list').innerHTML = d.map(r => `<div class="responder-item"><span>${r.name}</span><span class="status-tag status-ready">${r.status}</span></div>`).join('');
+        }
+
+        function showCreator() { const el = document.getElementById('cap-creator'); el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+        async function forwardToResponders() { await fetch('/forward_alert', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({alert_id: '123', channels: ['SMS']}) }); document.getElementById('forwarded-count').textContent = "1500+"; }
+
+        window.handleLogin = handleLogin; window.fetchGMet = fetchGMet; window.showCreator = showCreator; window.submitCAP = submitCAP; window.forwardToResponders = forwardToResponders;
+    </script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel's Realm - Public Alert</title>
+    <style>
+        /* --- Core Styles & "God's Eye" Aesthetic --- */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        body {
+            background-color: #0a0a14; /* Dark blue-black background */
+            color: #e0e0e0;
+            font-family: 'Roboto Mono', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* --- Alert Container & Modularity --- */
+        .alert-container {
+            width: 90%;
+            max-width: 1200px;
+            padding: 40px;
+            border: 4px solid #333;
+            background-color: rgba(10, 20, 40, 0.5);
+            text-align: center;
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+            position: relative;
+        }
+        
+        /* --- Standardized Color-Coding (EWS Requirement) --- */
+        .alert-container[data-level="warning"] {
+            border-color: #ff4d4d;
+            box-shadow: 0 0 25px rgba(255, 77, 77, 0.7);
+        }
+        .alert-container[data-level="watch"] {
+            border-color: #ff9f43;
+            box-shadow: 0 0 25px rgba(255, 159, 67, 0.7);
+        }
+        .alert-container[data-level="clear"] {
+            border-color: #00d1b2;
+            box-shadow: 0 0 25px rgba(0, 209, 178, 0.7);
+        }
+
+        /* --- "Certainty Gradient" (P-Wave Indicator) --- */
+        /* This class is added by JS when certainty is low */
+        .alert-container.uncertain {
+            animation: pulse-border 2s infinite;
+            border-style: dashed;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 25px rgba(255, 159, 67, 0.7); }
+            50% { box-shadow: 0 0 40px rgba(255, 159, 67, 1); }
+            100% { box-shadow: 0 0 25px rgba(255, 159, 67, 0.7); }
+        }
+        
+        /* --- Typography for Clarity --- */
+        #hazard-type {
+            font-size: 4rem;
+            font-weight: 700;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        #location-info {
+            font-size: 2.5rem;
+            margin: 10px 0;
+        }
+        .action-text {
+            font-size: 3rem;
+            font-weight: 700;
+            background-color: #e0e0e0;
+            color: #0a0a14;
+            padding: 20px;
+            margin-top: 30px;
+            display: inline-block;
+        }
+
+        /* --- System Branding --- */
+        .footer {
+            position: absolute;
+            bottom: 10px;
+            width: calc(100% - 80px);
+            display: flex;
+            justify-content: space-between;
+            font-size: 1rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="alert-display" class="alert-container" data-level="warning">
+        <h1 id="hazard-type">EARTHQUAKE</h1>
+        <h2 id="location-info">Accra Metropolitan Area</h2>
+        <p id="action-instruction" class="action-text">DROP, COVER, AND HOLD ON</p>
+
+        <div class="footer">
+            <span>THE SENTINEL'S REALM MHEWS</span>
+            <span id="timestamp"></span>
+        </div>
+    </div>
+
+    <script>
+        // --- This script simulates the system receiving new alerts ---
+
+        const hazardElement = document.getElementById('hazard-type');
+        const locationElement = document.getElementById('location-info');
+        const actionElement = document.getElementById('action-instruction');
+        const displayContainer = document.getElementById('alert-display');
+        const timestampElement = document.getElementById('timestamp');
+
+        /**
+         * @typedef {'warning' | 'watch' | 'clear'} AlertLevel
+         */
+
+        // Define a library of possible alert scenarios
+        const alertScenarios = [
+            {
+                level: 'warning',
+                hazard: 'TSUNAMI',
+                location: 'Coastal Areas - Western Region',
+                action: 'EVACUATE TO HIGHER GROUND',
+                certainty: 0.98 // High certainty, solid border
+            },
+            {
+                level: 'watch',
+                hazard: 'SEVERE FLOODING',
+                location: 'Odaw River Basin',
+                action: 'PREPARE FOR POSSIBLE EVACUATION',
+                certainty: 0.80 // Lower certainty, shows "P-Wave" effect
+            },
+            {
+                level: 'clear',
+                hazard: 'ALL CLEAR',
+                location: 'All Monitored Regions',
+                action: 'NORMAL ACTIVITIES CAN RESUME',
+                certainty: 1.0 // Certain, solid border
+            },
+             {
+                level: 'warning',
+                hazard: 'WILDFIRE',
+                location: 'Shai Hills Resource Reserve',
+                action: 'EVACUATE IMMEDIATELY',
+                certainty: 0.95 
+            }
+        ];
+
+        let currentAlertIndex = 0;
+
+        /**
+         * Updates the public display with new alert information.
+         * @param {object} alertData - The alert data object.
+         * @param {AlertLevel} alertData.level - The level of the alert.
+         * @param {string} alertData.hazard - The type of hazard.
+         * @param {string} alertData.location - The affected location.
+         * @param {string} alertData.action - The required public action.
+         * @param {number} alertData.certainty - A value from 0.0 to 1.0.
+         */
+        function updateDisplay(alertData) {
+            // Update text content (the 3 critical data points)
+            hazardElement.textContent = alertData.hazard;
+            locationElement.textContent = alertData.location;
+            actionElement.textContent = alertData.action;
+
+            // Update color coding via data attribute
+            displayContainer.dataset.level = alertData.level;
+
+            // Update "Certainty Gradient" visualization
+            // If certainty is below 90%, add the 'uncertain' class to trigger the animation
+            if (alertData.certainty < 0.90) {
+                displayContainer.classList.add('uncertain');
+            } else {
+                displayContainer.classList.remove('uncertain');
+            }
+
+            // Update timestamp
+            timestampElement.textContent = `LAST UPDATE: ${new Date().toLocaleTimeString()}`;
+        }
+
+        // Cycle through the different alert scenarios every 8 seconds
+        setInterval(() => {
+            currentAlertIndex = (currentAlertIndex + 1) % alertScenarios.length;
+            updateDisplay(alertScenarios[currentAlertIndex]);
+        }, 8000);
+
+        // Set the initial display
+        updateDisplay(alertScenarios[0]);
+    </script>
+
+</body>
+</html>

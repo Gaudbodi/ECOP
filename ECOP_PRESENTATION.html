@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified E-CoP Presentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .slide { display: none; }
+        .slide.active { display: flex; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased overflow-hidden">
+
+    <div class="fixed bottom-8 right-8 z-50 flex gap-4">
+        <button onclick="prevSlide()" class="bg-blue-600 hover:bg-blue-500 p-3 rounded-full transition-all shadow-lg active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+        </button>
+        <button onclick="nextSlide()" class="bg-blue-600 hover:bg-blue-500 p-3 rounded-full transition-all shadow-lg active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
+    </div>
+
+    <div class="fixed top-0 left-0 h-1 bg-blue-500 transition-all duration-300 z-50" id="progress"></div>
+
+    <main class="h-screen w-full relative">
+
+        <section class="slide active h-screen flex-col items-center justify-center text-center p-10 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+            <div class="max-w-4xl animate-fade-in">
+                <span class="bg-blue-500 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-6 inline-block">Ref: RQ_DOC_0</span>
+                <h1 class="text-5xl md:text-7xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-300">
+                    Unified Emergency Communication Platform (E-CoP) 
+                </h1>
+                <p class="text-xl text-slate-300 leading-relaxed mb-8">
+                    A centralized coordination hub integrating legacy and emerging technologies for national safety. [cite: 4, 11]
+                </p>
+                <div class="h-1 w-24 bg-blue-500 mx-auto rounded-full"></div>
+            </div>
+        </section>
+
+        <section class="slide h-screen flex-col items-center justify-center p-10 bg-slate-900">
+            <div class="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-4xl font-bold mb-6 border-l-4 border-blue-500 pl-6">Mission Overview [cite: 7]</h2>
+                    <ul class="space-y-6 text-lg text-slate-300">
+                        <li class="flex items-start">
+                            <span class="text-blue-500 mr-3 mt-1">●</span>
+                            <span>Mandated by the National Emergency Telecommunications Plan (NETP). [cite: 10]</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 mr-3 mt-1">●</span>
+                            <span>Seamless communication across government agencies, NGOs, and telecom operators. [cite: 8]</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 mr-3 mt-1">●</span>
+                            <span>Support for public alerts before, during, and after incidents. [cite: 4, 8]</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
+                    <h3 class="text-blue-400 font-bold mb-4 uppercase text-sm tracking-widest">Tech Spectrum [cite: 11]</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                            <span>Legacy (HF/VHF Radio)</span>
+                            <span class="text-slate-400">📡</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                            <span>Digital (Cell/IoT/AI)</span>
+                            <span class="text-slate-400">📱</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                            <span>Satellite (VSAT/LEO)</span>
+                            <span class="text-slate-400">🛰️</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="slide h-screen flex-col items-center justify-center p-10 bg-slate-800">
+            <h2 class="text-4xl font-bold mb-12 text-center">Core Capabilities [cite: 22]</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl">
+                <div class="bg-slate-900 p-6 rounded-xl border-t-4 border-blue-500">
+                    <h3 class="text-xl font-bold mb-4">Alert Management</h3>
+                    <p class="text-slate-400 text-sm mb-4">Multi-channel dissemination via SMS, Cell Broadcast, Radio, and TV Override. [cite: 95]</p>
+                    <ul class="text-xs space-y-2 text-slate-500">
+                        <li>• Geo-targeting enabled [cite: 96]</li>
+                        <li>• Multi-lingual support [cite: 98]</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-xl border-t-4 border-emerald-500">
+                    <h3 class="text-xl font-bold mb-4">Responder Tools</h3>
+                    <p class="text-slate-400 text-sm mb-4">Multi-agency portal for resource dispatching and real-time location data. [cite: 108]</p>
+                    <ul class="text-xs space-y-2 text-slate-500">
+                        <li>• Chat, voice, & video [cite: 113]</li>
+                        <li>• Unified event logging [cite: 114]</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-xl border-t-4 border-purple-500">
+                    <h3 class="text-xl font-bold mb-4">Smart Monitoring</h3>
+                    <p class="text-slate-400 text-sm mb-4">Automated triggers from IoT sensors (flood/seismic) and AI analytics. [cite: 122, 124]</p>
+                    <ul class="text-xs space-y-2 text-slate-500">
+                        <li>• Anomaly detection [cite: 124]</li>
+                        <li>• Offline message queuing [cite: 129]</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="slide h-screen flex-col items-center justify-center p-10 bg-slate-900">
+            <div class="max-w-4xl w-full text-center">
+                <h2 class="text-4xl font-bold mb-12">Performance & Reliability [cite: 153]</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                    <div class="p-6 bg-slate-800 rounded-lg">
+                        <div class="text-3xl font-bold text-blue-400 mb-2">&lt;1 Min</div>
+                        <div class="text-xs text-slate-400 uppercase">Alert Delivery </div>
+                    </div>
+                    <div class="p-6 bg-slate-800 rounded-lg">
+                        <div class="text-3xl font-bold text-blue-400 mb-2">99.9%</div>
+                        <div class="text-xs text-slate-400 uppercase">Availability [cite: 161]</div>
+                    </div>
+                    <div class="p-6 bg-slate-800 rounded-lg">
+                        <div class="text-3xl font-bold text-blue-400 mb-2">1,000+</div>
+                        <div class="text-xs text-slate-400 uppercase">Concurrent Users [cite: 157]</div>
+                    </div>
+                    <div class="p-6 bg-slate-800 rounded-lg">
+                        <div class="text-3xl font-bold text-blue-400 mb-2">Encrypted</div>
+                        <div class="text-xs text-slate-400 uppercase">E2E Comms [cite: 172]</div>
+                    </div>
+                </div>
+                <div class="bg-blue-900/20 border border-blue-500/30 p-6 rounded-xl">
+                    <p class="text-slate-300 italic">"The system must scale to millions of alerts per minute for nationwide emergencies." [cite: 165]</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="slide h-screen flex-col items-center justify-center p-10 bg-blue-900">
+            <div class="max-w-3xl">
+                <h2 class="text-4xl font-bold mb-8 text-white">Project Roadmap [cite: 237]</h2>
+                <div class="space-y-4">
+                    <div class="flex items-center bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                        <span class="w-8 h-8 flex items-center justify-center bg-white text-blue-900 font-bold rounded-full mr-4">1</span>
+                        <span class="text-lg">Finalize System Architecture [cite: 239]</span>
+                    </div>
+                    <div class="flex items-center bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                        <span class="w-8 h-8 flex items-center justify-center bg-white text-blue-900 font-bold rounded-full mr-4">2</span>
+                        <span class="text-lg">Establish Implementation Roadmap [cite: 240]</span>
+                    </div>
+                    <div class="flex items-center bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                        <span class="w-8 h-8 flex items-center justify-center bg-white text-blue-900 font-bold rounded-full mr-4">3</span>
+                        <span class="text-lg">Confirm Governance & Funding (NETCC) [cite: 241]</span>
+                    </div>
+                    <div class="flex items-center bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                        <span class="w-8 h-8 flex items-center justify-center bg-white text-blue-900 font-bold rounded-full mr-4">4</span>
+                        <span class="text-lg">Procurement & Pilot Testing [cite: 243]</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const progress = document.getElementById('progress');
+
+        function updateSlide() {
+            slides.forEach((s, i) => {
+                s.classList.remove('active');
+                if(i === currentSlide) s.classList.add('active');
+            });
+            progress.style.width = `${((currentSlide + 1) / slides.length) * 100}%`;
+        }
+
+        function nextSlide() {
+            if(currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if(currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+            if(e.key === 'ArrowLeft') prevSlide();
+        });
+    </script>
+</body>
+</html>

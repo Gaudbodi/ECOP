@@ -1,0 +1,8 @@
+{
+  "url": "https://ghaap.com/weather-forecast/index.php?p=crop-search-event&regiontxt=REG02&districttxt=DS031&crop=CT0000000001&yeartxt=2025",
+  "method": "traditional_scraping",
+  "timestamp": "2025-05-25 16:27:54",
+  "advisory_text": ": FORECAST | RAINFALL:  | TEMPERATURE:  | HUMIDITY:  | SOIL MOISTURE:  | SOIL TEMPERATURE:  | SUNSHINE INTENSITY:  | SUNRISE:  | SUNSET:  | EVAPORATION TRANSPIRATION:  || : IMPLICATIONS | RAINFALL:  | TEMPERATURE:  | HUMIDITY:  | SOIL MOISTURE:  | SOIL TEMPERATURE:  | SUNSHINE INTENSITY:  | SUNRISE:  | SUNSET:  | EVAPORATION TRANSPIRATION: ",
+  "source": "GHAAP (Traditional scraping)",
+  "success": true
+}

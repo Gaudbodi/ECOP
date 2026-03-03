@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel's Realm - Command Dashboard</title>
+    <style>
+        /* --- Core Styles & "Calculated Chaos" Aesthetic --- */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Roboto+Mono&display=swap');
+
+        body {
+            background-color: #05080f;
+            color: #a0c4ff;
+            font-family: 'Roboto Mono', monospace;
+            margin: 0;
+            padding: 15px;
+            overflow: hidden;
+            /* Animated background to give a "processing" feel */
+            background: linear-gradient(45deg, #05080f, #101424, #05080f);
+            background-size: 400% 400%;
+            animation: background-scan 15s ease infinite;
+        }
+
+        @keyframes background-scan {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        h1, h2, h3 {
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            color: #ffffff;
+            letter-spacing: 2px;
+        }
+
+        /* --- Modular Layout (CSS Grid) --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            grid-template-rows: auto 1fr 1fr;
+            grid-template-areas:
+                "header header header header"
+                "map map feeds social"
+                "map map alerts alerts";
+            gap: 15px;
+            height: calc(100vh - 30px);
+        }
+
+        .panel {
+            background: rgba(15, 30, 60, 0.4);
+            border: 1px solid #2a4c8a;
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        #header { grid-area: header; }
+        #map-panel { grid-area: map; position: relative; padding: 0; }
+        #iot-feeds-panel { grid-area: feeds; }
+        #social-listening-panel { grid-area: social; }
+        #alert-control-panel { grid-area: alerts; }
+
+        /* --- Specific Panel Styling --- */
+        
+        /* Map Panel with Probability Overlay */
+        #map-panel img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.6;
+        }
+        .probability-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 0, 0, 0.5);
+            padding: 15px;
+            border: 2px dashed #ffdddd;
+            color: white;
+            animation: flicker 3s infinite alternate;
+        }
+        @keyframes flicker {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% { text-shadow: 0 0 4px #fff, 0 0 11px #fff, 0 0 19px #fff, 0 0 40px #ff00de; }
+            20%, 24%, 55% { text-shadow: none; }
+        }
+
+        /* Data Feeds & Lists */
+        .data-list { list-style: none; padding: 0; }
+        .data-list li { margin-bottom: 10px; border-left: 2px solid #ff9f43; padding-left: 10px; }
+        .data-list .value { color: #00d1b2; font-weight: bold; float: right; }
+        
+        /* Social Listening */
+        .social-post { margin-bottom: 15px; }
+        .social-post .user { color: #82aaff; }
+        .social-post .verified::after { content: ' ✔️'; color: #00d1b2; } /* Verification Badge */
+        .social-post .misinfo::after { content: ' ⚠️'; color: #ff4d4d; } /* Misinformation Flag */
+
+        /* Alert Control & Transparency */
+        .button-group button {
+            background: #2a4c8a;
+            color: white;
+            border: 1px solid #a0c4ff;
+            padding: 10px 15px;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background 0.3s;
+        }
+        .button-group button:hover { background: #4a6c9a; }
+        
+        #alert-rationale {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-left: 3px solid #00d1b2;
+            white-space: pre-wrap; /* Preserves formatting */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-grid">
+        <header id="header" class="panel">
+            <h1>The Sentinel's Realm - Command & Control</h1>
+        </header>
+
+        <div id="map-panel" class="panel">
+            <img src="https://i.imgur.com/2A2F1D1.png" alt="Map of a coastal region">
+            <div class="probability-overlay">
+                <h3>AI HAZARD FORECAST</h3>
+                <p id="forecast-text">85% PROBABILITY: FLASH FLOOD</p>
+                <span>TARGET: ZONE-7, KORLE LAGOON</span>
+            </div>
+        </div>
+
+        <div id="iot-feeds-panel" class="panel">
+            <h2>IoT Sensor Feeds</h2>
+            <ul class="data-list">
+                <li>River Level (Odaw): <span id="river-level" class="value">2.1m</span></li>
+                <li>Seismic Activity: <span id="seismic" class="value">1.2 MMI</span></li>
+                <li>Air Quality (PM2.5): <span id="air-quality" class="value">45 µg/m³</span></li>
+                <li>Rainfall Rate: <span id="rainfall" class="value">15mm/hr</span></li>
+            </ul>
+        </div>
+
+        <div id="social-listening-panel" class="panel">
+            <h2>Social Listening</h2>
+            <div class="social-post">
+                <span class="user verified">@GMetGhana</span>: Heavy rainfall expected...
+            </div>
+            <div class="social-post">
+                <span class="user misinfo">@AccraNewsNow</span>: Reports of a bridge collapse are UNCONFIRMED.
+            </div>
+             <div class="social-post">
+                <span class="user">@CitizenReport</span>: Water is rising fast near circle...
+            </div>
+        </div>
+
+        <div id="alert-control-panel" class="panel">
+            <h2>Dissemination Control</h2>
+            <div class="button-group">
+                <button onclick="issueAlert('flood')">Issue Flood Warning</button>
+                <button onclick="issueAlert('allClear')">Issue All-Clear</button>
+            </div>
+            <h3>Alert Rationale (Transparency Module)</h3>
+            <div id="alert-rationale">
+                Awaiting operator action...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- This script simulates real-time data updates on the dashboard ---
+
+        // Simulate IoT data fluctuations
+        const riverLevelEl = document.getElementById('river-level');
+        const seismicEl = document.getElementById('seismic');
+        const airQualityEl = document.getElementById('air-quality');
+        const rainfallEl = document.getElementById('rainfall');
+
+        setInterval(() => {
+            // Simulate changing sensor data
+            let riverLevel = (2.1 + Math.random() * 0.5).toFixed(2);
+            let seismic = (1.2 + Math.random() * 0.2).toFixed(2);
+            let airQuality = Math.floor(45 + Math.random() * 10);
+            let rainfall = Math.floor(15 + Math.random() * 5);
+            
+            riverLevelEl.textContent = `${riverLevel}m`;
+            seismicEl.textContent = `${seismic} MMI`;
+            airQualityEl.textContent = `${airQuality} µg/m³`;
+            rainfallEl.textContent = `${rainfall}mm/hr`;
+
+        }, 2000); // Update every 2 seconds
+
+        // --- Alert Rationale Logic ---
+        const rationaleEl = document.getElementById('alert-rationale');
+        
+        const alertTemplates = {
+            flood: `ALERT TRIGGER: AUTOMATED (AI-DRIVEN)
+REASON: AI analyzed data from 5 river sensors and radar.
+- River Level at Station 3 exceeded 2.5m threshold.
+- Rainfall rate > 20mm/hr sustained for 10 minutes.
+- Forecast predicts river will crest in 45 minutes.
+ACTION: CAP-compliant 'Flood Warning' message template deployed to public channels in Zone-7.`,
+            allClear: `ALERT TRIGGER: MANUAL (OPERATOR CONFIRMED)
+REASON: Field reports and sensor data confirm hazard has passed.
+- River Level at Station 3 is below 1.5m.
+- No significant rainfall detected for 60 minutes.
+ACTION: 'All-Clear' message deployed to all previously alerted zones.`
+        };
+
+        /**
+         * Populates the rationale box based on the alert type issued.
+         * @param {'flood' | 'allClear'} type 
+         */
+        function issueAlert(type) {
+            rationaleEl.textContent = alertTemplates[type];
+        }
+
+    </script>
+</body>
+</html>

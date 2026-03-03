@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Disaster Simulation Map - Ghana</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.111/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.111/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <style>
+    html, body, #cesiumContainer {
+      width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="cesiumContainer"></div>
+  <script>
+    // 1. Your Cesium ion access token (get a free one from cesium.com/ion)
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJkYjc3ZTk1NC05M2NhLTRmNTktYjgzMi1hMDVjYjJiYzE1ZGMiLCJpZCI6MjE0MjgwLCJpYXQiOjE3MTUzNDc1NTZ9.0Hc_BmYTFSHuA7s4hYg6kES02WN8sWNES_cxXS-JeZ4';
+
+    // 2. Initialize the viewer with world terrain
+    const viewer = new Cesium.Viewer('cesiumContainer', {
+      terrainProvider: Cesium.createWorldTerrain()
+    });
+
+    // 3. Define the coordinates for Accra, Ghana
+    const accraLongitude = -0.2057;
+    const accraLatitude = 5.6146;
+
+    // 4. Fly the camera to a viewpoint above Accra on startup
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(accraLongitude, accraLatitude, 25000), // Height in meters
+      orientation: {
+        heading: Cesium.Math.toRadians(0.0), // East
+        pitch: Cesium.Math.toRadians(-45.0), // Looking down at an angle
+        roll: 0.0
+      }
+    });
+
+    // 5. EXAMPLE: Add a red circle to represent a simulated incident in Accra
+    // This is where you would add your own simulation data and visuals.
+    const incidentPoint = viewer.entities.add({
+      name: 'Simulated Incident Location',
+      position: Cesium.Cartesian3.fromDegrees(accraLongitude, accraLatitude),
+      ellipse: {
+        semiMinorAxis: 1000.0, // Radius in meters
+        semiMajorAxis: 1000.0, // Radius in meters
+        material: Cesium.Color.RED.withAlpha(0.5), // Semi-transparent red
+        outline: true,
+        outlineColor: Cesium.Color.BLACK
+      }
+    });
+
+  </script>
+</body>
+</html>

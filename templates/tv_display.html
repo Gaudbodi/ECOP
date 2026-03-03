@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Alert System</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --primary-teal: #309898;
+            --primary-orange: #FF9F00;
+            --primary-coral: #F4631E;
+            --primary-red: #CB0404;
+            --bg-light: #f0f4f8;
+            --bg-dark: #1a1a2e;
+            --text-dark: #0f0f1e;
+            --white: #ffffff;
+            --purple-light: #8B5FBF;
+            --blue-light: #6BB6FF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: var(--text-dark);
+            min-height: 100vh;
+            width: 100vw;
+            position: relative;
+            overflow-x: hidden;
+        } */
+
+        /* Siren Animation Container */
+        .siren-intro {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 1;
+        }
+
+        .siren-icon {
+            font-size: 120px;
+            animation: flash 0.5s infinite alternate, rotate 2s infinite linear;
+        }
+
+        @keyframes flash {
+            0% { opacity: 1; filter: drop-shadow(0 0 30px var(--primary-red)); }
+            100% { opacity: 0.3; filter: drop-shadow(0 0 10px var(--primary-orange)); }
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Weather Effects */
+        .weather-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 500;
+            opacity: 0;
+            overflow: hidden; /* Prevent content from causing scrollbars */
+            will-change: opacity; /* Optimize for opacity animations */
+        }
+
+        .rain-effect {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .raindrop {
+            position: absolute;
+            top: -50px;
+            width: 2px;
+            height: 20px;
+            background: rgba(48, 152, 152, 0.7);
+            opacity: 0.7;
+            border-radius: 2px;
+            will-change: transform; /* Optimize for transform animations */
+            transform: translateZ(0); /* Force hardware acceleration */
+        }
+
+        @keyframes rainFall {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .earthquake-effect {
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-0.5deg); }
+            75% { transform: translateX(5px) rotate(0.5deg); }
+        }
+
+        .fire-effect {
+            background: radial-gradient(circle at bottom, rgba(203, 4, 4, 0.3), transparent);
+            animation: fireGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes fireGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        .thunderstorm-effect {
+            animation: lightning 3s infinite;
+        }
+
+        @keyframes lightning {
+            0%, 90%, 100% { opacity: 0; background: transparent; }
+            95% { opacity: 1; background: rgba(255, 255, 255, 0.9); }
+        }
+
+        /* Lightning bolts for thunderstorm */
+        .lightning-bolt {
+            position: absolute;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, #fff, rgba(255,255,255,0));
+            opacity: 0;
+            animation: lightningStrike 4s infinite;
+            box-shadow: 0 0 20px #fff, 0 0 40px #fff;
+        }
+
+        .lightning-bolt:nth-child(1) { left: 20%; animation-delay: 0s; }
+        .lightning-bolt:nth-child(2) { left: 60%; animation-delay: 1.5s; }
+        .lightning-bolt:nth-child(3) { left: 80%; animation-delay: 3s; }
+
+        @keyframes lightningStrike {
+            0%, 95% { opacity: 0; }
+            96%, 98% { opacity: 1; }
+            99%, 100% { opacity: 0; }
+        }
+
+        /* Fire particles */
+        .fire-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .fire-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, var(--primary-red), var(--primary-orange));
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: fireParticle 3s infinite linear;
+        }
+
+        @keyframes fireParticle {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                transform: translateY(-100px) scale(0);
+                opacity: 0;
+            }
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #dddddd;
+            color: #000000;
+            min-height: 100vh;
+            width: 100vw;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto; /* Ensure consistent scrollbar behavior */
+        }
+
+        .hero-container {
+            display: flex;
+            background-color: #dddddd;
+            min-height: 100vh;
+            align-items: center;
+            padding: 0 5%;
+        }
+
+        .hero-text {
+            flex: 1;
+            padding-right: 5%;
+            color: #000000;
+        }
+
+        .hero-map {
+            flex: 1;
+            height: 100vh;
+            background-color: transparent;
+        }
+
+        #map {
+            height: 100%; /* Add this line */
+            background-color: transparent !important;
+        }
+
+        .leaflet-container {
+            background-color: transparent !important;
+            border: none !important;
+        }
+
+        .leaflet-tile-pane {
+            filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.1));
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 25px;
+            background: var(--white);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(48, 152, 152, 0.3);
+            z-index: 100;
+            opacity: 0;
+        }
+
+        .status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            animation: statusPulse 2s infinite;
+        }
+
+        .status-connected .status-dot {
+            background: var(--primary-teal);
+            box-shadow: 0 0 20px var(--primary-teal);
+        }
+
+        .status-disconnected .status-dot {
+            background: var(--primary-red);
+            box-shadow: 0 0 20px var(--primary-red);
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .status-text {
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dark);
+        }
+
+        .main-heading {
+            text-align: center;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, var(--primary-teal) 0%, #2a7f7e 100%);
+            padding: 30px 50px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(48, 152, 152, 0.3);
+            transform: rotate(-1deg);
+            opacity: 0;
+        }
+
+        .main-heading h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--white);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 3px 3px 0 var(--text-dark);
+            margin-bottom: 10px;
+        }
+
+        .main-heading p {
+            font-size: 1.4rem;
+            color: var(--white);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: var(--white);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: translateY(30px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            max-width: 100%;
+        }
+
+        .instruction-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary-teal) 0%, var(--blue-light) 50%, var(--purple-light) 100%);
+        }
+
+        .instruction-item:nth-child(2n)::before {
+            background: linear-gradient(180deg, var(--primary-orange) 0%, var(--primary-coral) 50%, var(--primary-red) 100%);
+        }
+
+        .instruction-item:nth-child(3n)::before {
+            background: linear-gradient(180deg, var(--purple-light) 0%, var(--blue-light) 50%, var(--primary-teal) 100%);
+        }
+
+        .instruction-number {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            background: var(--primary-teal);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--white);
+            box-shadow: 0 5px 15px rgba(48, 152, 152, 0.4);
+        }
+
+        .instruction-item:nth-child(2n) .instruction-number {
+            background: var(--primary-orange);
+            box-shadow: 0 5px 15px rgba(255, 159, 0, 0.4);
+        }
+
+        .instruction-item:nth-child(3n) .instruction-number {
+            background: var(--purple-light);
+            box-shadow: 0 5px 15px rgba(139, 95, 191, 0.4);
+        }
+
+        .instruction-icon {
+            flex-shrink: 0;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .instruction-icon svg {
+            width: 35px;
+            height: 35px;
+            fill: var(--primary-teal);
+        }
+
+        .instruction-text {
+            flex: 1;
+            font-size: 1.1rem;
+            line-height: 1.3;
+            font-weight: 600;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            word-wrap: break-word;
+            hyphens: auto;
+        }
+
+        .no-alert {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: var(--white);
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 40px rgba(48, 152, 152, 0.2);
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0;
+        }
+
+        .no-alert svg {
+            width: 80px;
+            height: 80px;
+            fill: var(--primary-teal);
+            margin-bottom: 20px;
+            animation: float 3s infinite ease-in-out;
+        }
+
+        .no-alert h3 {
+            font-size: 1.8rem;
+            color: var(--text-dark);
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .no-alert p {
+            font-size: 1rem;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @media (max-width: 768px) {
+            .hero-container {
+                flex-direction: column;
+            }
+            .hero-map {
+                width: 100%;
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Siren Intro -->
+    <div class="siren-intro" id="sirenIntro">
+        <div class="siren-icon">🚨</div>
+    </div>
+
+    <div class="status-indicator status-disconnected" id="status">
+        <span class="status-dot"></span>
+        <span class="status-text">Connecting...</span>
+    </div>
+
+    <div class="hero-container" id="heroContainer">
+        <div class="hero-text">
+            <div id="no-alert-state" class="no-alert">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                <h3>No Active Alerts</h3>
+                <p>System monitoring for emergency broadcasts...</p>
+            </div>
+            
+            <div id="alert-content" style="display: none;">
+                <div class="main-heading" id="mainHeading">
+                    <h1 id="headline">Emergency Instructions</h1>
+                    <p id="area-desc">Follow these steps immediately for your safety</p>
+                </div>
+                <div id="instruction-items"></div>
+            </div>
+        </div>
+        <div class="hero-map" id="mapContainer">
+            <div id="map"></div>
+            <div class="weather-overlay" id="weatherOverlay"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const SERVER_IP = "192.168.8.107";            
+            const SERVER_URL = `http://${SERVER_IP}:5000`;
+
+            // Initialize GSAP timeline for intro animation
+            const tl = gsap.timeline();
+            
+            // Siren intro animation - exactly 3 seconds of flashing
+            tl.set("#sirenIntro", { opacity: 1 })
+            .to("#sirenIntro", {
+                duration: 3,
+                ease: "none" // Keep the CSS animation running
+            })
+            // Move siren to top-left and make it smaller (logo-like)
+            .to("#sirenIntro", {
+                duration: 1,
+                top: "30px",
+                left: "30px",
+                x: 0,
+                y: 0,
+                scale: 0.3,
+                ease: "power3.inOut"
+            })
+            .to("#sirenIntro .siren-icon", {
+                fontSize: "40px",
+                duration: 0.5
+            }, "-=0.5")
+            // Fade in the main content
+            .to("#heroContainer", {
+                duration: 1,
+                opacity: 1,
+                ease: "power2.out"
+            }, "-=0.5")
+            .to("#status", {
+                duration: 0.5,
+                opacity: 1,
+                ease: "power2.out"
+            }, "-=0.5")
+            .to("#no-alert-state", {
+                duration: 0.5,
+                opacity: 1,
+                y: 0,
+                ease: "power2.out"
+            }, "-=0.3");
+
+            // Initialize map with Ghana coordinates and make it stationary
+            const map = L.map('map', {
+                center: [7.9465, -1.0232], // Ghana coordinates
+                zoom: 7,
+                zoomControl: false,
+                dragging: false,
+                touchZoom: false,
+                doubleClickZoom: false,
+                scrollWheelZoom: false,
+                boxZoom: false,
+                keyboard: false
+            });
+
+            // Create a blank tile layer that matches the page background
+            const blankTileLayer = L.tileLayer('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mO8/+8fAzAAjgD+F7t+KQAAAABJRU5ErkJggg==', {
+                attribution: '',
+                maxZoom: 18,
+            });
+
+            // Add the blank tile layer to the map
+            blankTileLayer.addTo(map);
+
+            // Set the map container background to match page background
+            map.getContainer().style.backgroundColor = '#dddddd';
+
+            // Initialize polygon layer for alert areas
+            let polygonLayer = L.layerGroup().addTo(map);
+
+            // Function to load Ghana boundary
+            const loadGhanaBoundary = () => {
+                fetch('/static/ghana_regions.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Ghana regions data loaded successfully');
+
+                        // Create a layer group for all Ghana regions
+                        const ghanaRegionsLayer = L.geoJSON(data, {
+                            style: {
+                                color: '#000000',        // Black outline for visibility
+                                weight: 1.5,             // Line thickness
+                                fillOpacity: 0,          // No fill - transparent inside
+                                opacity: 1               // Full opacity for the outline
+                            }
+                        });
+
+                        // Add to map
+                        ghanaRegionsLayer.addTo(map);
+
+                        // Fit the map to Ghana's actual boundaries with padding
+                        const ghanaBounds = ghanaRegionsLayer.getBounds();
+                        map.fitBounds(ghanaBounds, { padding: [20, 20] });
+
+                        // Restrict panning to Ghana area only
+                        map.setMaxBounds(ghanaBounds.pad(0.1));
+
+                        console.log('Ghana boundary outline created successfully');
+                    })
+                    .catch(error => {
+                        console.error('Error loading Ghana regions data:', error);
+
+                        // Fallback: Use a simple bounding box if GeoJSON fails to load
+                        const fallbackBounds = [
+                            [4.5, -3.5], // Southwest corner [lat, lng]
+                            [11.2, 1.3]  // Northeast corner [lat, lng]
+                        ];
+
+                        map.fitBounds(fallbackBounds);
+                        map.setMaxBounds(fallbackBounds);
+
+                        // Add a simple rectangle outline as fallback
+                        const fallbackRect = L.rectangle(fallbackBounds, {
+                            color: '#000000',
+                            weight: 2,
+                            fillOpacity: 0,
+                            dashArray: '5, 5'
+                        });
+                        fallbackRect.addTo(map);
+
+                        console.log('Using fallback boundary rectangle');
+                    });
+            };
+
+            // Load Ghana boundary after map is ready
+            map.whenReady(() => {
+                console.log('Map is ready, loading Ghana boundary...');
+                loadGhanaBoundary();
+            });
+
+
+
+    
+
+
+            let currentDisasterType = null;
+
+            const statusDiv = document.getElementById('status');
+            const statusText = statusDiv.querySelector('.status-text');
+            const noAlertState = document.getElementById('no-alert-state');
+            const alertContent = document.getElementById('alert-content');
+            const headlineEl = document.getElementById('headline');
+            const areaDescEl = document.getElementById('area-desc');
+            const instructionItems = document.getElementById('instruction-items');
+            const weatherOverlay = document.getElementById('weatherOverlay');
+            const mapContainer = document.getElementById('mapContainer');
+            const mainHeading = document.getElementById('mainHeading');
+
+            const detectDisasterType = (headline, instruction) => {
+                const text = (headline + ' ' + instruction).toLowerCase();
+                
+                if (text.includes('rain') || text.includes('flood') || text.includes('monsoon')) {
+                    return 'rain';
+                } else if (text.includes('thunder') || text.includes('storm') || text.includes('lightning')) {
+                    return 'thunderstorm';
+                } else if (text.includes('fire') || text.includes('wildfire') || text.includes('burn')) {
+                    return 'fire';
+                } else if (text.includes('earthquake') || text.includes('tremor') || text.includes('seismic')) {
+                    return 'earthquake';
+                } else if (text.includes('hurricane') || text.includes('cyclone') || text.includes('typhoon')) {
+                    return 'hurricane';
+                } else {
+                    return 'general';
+                }
+            };
+
+            const createRainEffect = () => {
+                const container = document.createElement('div');
+                container.className = 'rain-effect';
+
+                // Cache dimensions to avoid layout thrashing during animation
+                const containerWidth = window.innerWidth;
+                const containerHeight = window.innerHeight;
+
+                const totalRaindrops = 60;
+
+                for (let i = 0; i < totalRaindrops; i++) {
+                    const drop = document.createElement('div');
+                    drop.classList.add('raindrop');
+                    container.appendChild(drop);
+
+                    // Use GSAP for smooth rain animation with cached dimensions
+                    gsap.fromTo(
+                        drop,
+                        {
+                            x: Math.random() * containerWidth,
+                            y: -50,
+                        },
+                        {
+                            y: containerHeight + 50,
+                            duration: Math.random() * 2 + 1,
+                            repeat: -1,
+                            delay: Math.random() * 2,
+                            ease: 'power1.in',
+                        }
+                    );
+                }
+
+                return container;
+            };
+            const createFireParticles = () => {
+                const container = document.createElement('div');
+                container.className = 'fire-particles';
+                
+                for (let i = 0; i < 15; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'fire-particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 3 + 's';
+                    particle.style.animationDuration = (2 + Math.random() * 2) + 's';
+                    container.appendChild(particle);
+                }
+                
+                return container;
+            };
+
+            const createLightningBolts = () => {
+                const container = document.createElement('div');
+                container.style.position = 'absolute';
+                container.style.width = '100%';
+                container.style.height = '100%';
+                
+                for (let i = 0; i < 3; i++) {
+                    const bolt = document.createElement('div');
+                    bolt.className = 'lightning-bolt';
+                    container.appendChild(bolt);
+                }
+                
+                return container;
+            };
+
+            const applyDisasterEffect = (type) => {
+                // Remove all previous effects
+                weatherOverlay.className = 'weather-overlay';
+                weatherOverlay.innerHTML = '';
+                mapContainer.classList.remove('earthquake-effect');
+                
+                switch(type) {
+                    case 'rain':
+                        weatherOverlay.appendChild(createRainEffect());
+                        gsap.to(weatherOverlay, { opacity: 1, duration: 1 });
+                        // Change map to blue tint for water
+                        map.getContainer().style.filter = 'hue-rotate(180deg) saturate(1.5) brightness(1.1)';
+                        break;
+                    
+                    case 'thunderstorm':
+                        weatherOverlay.appendChild(createRainEffect());
+                        weatherOverlay.appendChild(createLightningBolts());
+                        weatherOverlay.classList.add('thunderstorm-effect');
+                        gsap.to(weatherOverlay, { opacity: 1, duration: 1 });
+                        map.getContainer().style.filter = 'hue-rotate(200deg) saturate(1.2) brightness(0.8)';
+                        break;
+                    
+                    case 'fire':
+                        weatherOverlay.classList.add('fire-effect');
+                        weatherOverlay.appendChild(createFireParticles());
+                        gsap.to(weatherOverlay, { opacity: 1, duration: 1 });
+                        map.getContainer().style.filter = 'hue-rotate(-30deg) saturate(2) brightness(1.2)';
+                        break;
+                    
+                    case 'earthquake':
+                        mapContainer.classList.add('earthquake-effect');
+                        map.getContainer().style.filter = 'contrast(1.3) saturate(0.8)';
+                        break;
+                    
+                    case 'hurricane':
+                        weatherOverlay.appendChild(createRainEffect());
+                        gsap.to(weatherOverlay, { opacity: 1, duration: 1 });
+                        map.getContainer().style.filter = 'hue-rotate(190deg) saturate(1.3) brightness(0.9)';
+                        break;
+                    
+                    default:
+                        map.getContainer().style.filter = 'none';
+                }
+            };
+
+            const clearDisasterEffect = () => {
+                gsap.to(weatherOverlay, { opacity: 0, duration: 0.5 });
+                mapContainer.classList.remove('earthquake-effect');
+                map.getContainer().style.filter = 'none';
+                setTimeout(() => {
+                    weatherOverlay.className = 'weather-overlay';
+                    weatherOverlay.innerHTML = '';
+                }, 500);
+            };
+
+            const getInstructionIcon = (text) => {
+                const lowerText = text.toLowerCase();
+                
+                if (lowerText.includes('evacuate') || lowerText.includes('leave') || lowerText.includes('move to higher')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/>
+                    </svg>`;
+                }
+                
+                if (lowerText.includes('stay indoor') || lowerText.includes('remain indoor') || lowerText.includes('shelter')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>`;
+                }
+                
+                if (lowerText.includes('avoid') || lowerText.includes("don't") || lowerText.includes('do not')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z"/>
+                    </svg>`;
+                }
+                
+                if (lowerText.includes('water') || lowerText.includes('flood')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zm0 18c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2z"/>
+                    </svg>`;
+                }
+                
+                if (lowerText.includes('listen') || lowerText.includes('radio') || lowerText.includes('monitor')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M3.24 6.15C2.51 6.43 2 7.17 2 8v12c0 1.1.89 2 2 2h16c1.11 0 2-.9 2-2V8c0-1.11-.89-2-2-2H8.3l8.26-3.34L15.88 1 3.24 6.15zM7 20c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-8h-2v-2h-2v2H4V8h16v4z"/>
+                    </svg>`;
+                }
+                
+                if (lowerText.includes('call') || lowerText.includes('phone') || lowerText.includes('contact')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                    </svg>`;
+                }
+                
+                return `<svg viewBox="0 0 24 24">
+                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                </svg>`;
+            };
+
+            const parseInstructions = (instructionText) => {
+                if (!instructionText) return [];
+                
+                const sentences = instructionText
+                    .split(/[.;]\s+|\n+/)
+                    .map(s => s.trim())
+                    .filter(s => s.length > 5);
+                
+                return sentences;
+            };
+
+            const displayInstructions = (instructions) => {
+                instructionItems.innerHTML = '';
+                
+                // Animate heading first
+                gsap.to(mainHeading, {
+                    opacity: 1,
+                    duration: 0.5,
+                    ease: "power2.out"
+                });
+                
+                // Display instructions one by one with staggered animation
+                instructions.forEach((instruction, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'instruction-item';
+                    
+                    item.innerHTML = `
+                        <div class="instruction-number">${index + 1}</div>
+                        <div class="instruction-icon">
+                            ${getInstructionIcon(instruction)}
+                        </div>
+                        <div class="instruction-text">${instruction}</div>
+                    `;
+                    
+                    instructionItems.appendChild(item);
+                    
+                    // Staggered fade-in animation - each instruction appears one by one
+                    gsap.to(item, {
+                        opacity: 1,
+                        y: 0,
+                        duration: 0.6,
+                        delay: 0.3 + (index * 0.5), // 0.5 second delay between each instruction
+                        ease: "power2.out"
+                    });
+                });
+            };
+
+            const clearAlert = () => {
+                alertContent.style.display = 'none';
+                noAlertState.style.display = 'flex';
+                gsap.to(noAlertState, {
+                    opacity: 1,
+                    duration: 0.5,
+                    ease: "power2.out"
+                });
+                polygonLayer.clearLayers();
+                clearDisasterEffect();
+                console.log('Alert cleared');
+            };
+
+            // Demo function to test different disaster types
+            // const testDisasters = () => {
+            //     const testAlerts = [
+            //         {
+            //             'cap:headline': 'Severe Thunderstorm Warning',
+            //             'cap:instruction': 'Stay indoors and avoid windows. Do not use electrical appliances. Listen to local radio for updates. Avoid going outside until the storm passes.',
+            //             'cap:areaDesc': 'Greater Accra Region'
+            //         },
+            //         {
+            //             'cap:headline': 'Flash Flood Alert',
+            //             'cap:instruction': 'Move to higher ground immediately. Avoid walking or driving through flooded areas. Stay away from storm drains and ditches. Monitor local news for evacuation orders.',
+            //             'cap:areaDesc': 'Coastal Areas'
+            //         },
+            //         {
+            //             'cap:headline': 'Wildfire Emergency',
+            //             'cap:instruction': 'Evacuate the area immediately. Follow designated evacuation routes. Do not attempt to fight the fire yourself. Call emergency services if you see flames.',
+            //             'cap:areaDesc': 'Northern Region'
+            //         },
+            //         {
+            //             'cap:headline': 'Earthquake Alert',
+            //             'cap:instruction': 'Drop, cover, and hold on. Stay away from windows and heavy objects. Do not run outside during shaking. Check for injuries after tremor stops.',
+            //             'cap:areaDesc': 'Eastern Region'
+            //         }
+            //     ];
+
+            //     let currentIndex = 0;
+                
+            //     // Test with the first disaster immediately
+            //     setTimeout(() => {
+            //         processAlert([testAlerts[currentIndex]]);
+            //         currentIndex++;
+            //     }, 5000);
+
+            //     // Cycle through different disasters every 15 seconds
+            //     setInterval(() => {
+            //         if (currentIndex < testAlerts.length) {
+            //             processAlert([testAlerts[currentIndex]]);
+            //             currentIndex++;
+            //         } else {
+            //             // Reset to show no alert state
+            //             clearAlert();
+            //             currentIndex = 0;
+            //         }
+            //     }, 15000);
+            // };
+
+            const processAlert = (data) => {
+                console.log('Alert data received:', data);
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    console.warn('Invalid or empty data received');
+                    clearAlert();
+                    return;
+                }
+
+                const alert = data[0];
+                console.log('Processing alert:', alert);
+
+                noAlertState.style.display = 'none';
+                alertContent.style.display = 'block';
+
+                const headline = alert['cap:headline'] || 'Emergency Alert';
+                const instructionText = alert['cap:instruction'] || 'Follow instructions from local authorities. Stay tuned for updates.';
+                const areaDesc = alert['cap:areaDesc'] || 'Affected Area';
+                
+                headlineEl.textContent = headline;
+                areaDescEl.textContent = `Area: ${areaDesc}`;
+
+                // Detect disaster type and apply effects
+                const disasterType = detectDisasterType(headline, instructionText);
+                console.log('Detected disaster type:', disasterType);
+                
+                if (currentDisasterType !== disasterType) {
+                    currentDisasterType = disasterType;
+                    applyDisasterEffect(disasterType);
+                }
+
+                // Parse and display instructions
+                const instructions = parseInstructions(instructionText);
+                displayInstructions(instructions);
+
+                // Handle polygon data if available
+                // if (alert.polygon && alert.polygon.length > 0) {
+                //     polygonLayer.clearLayers();
+                    
+                //     alert.polygon.forEach(coords => {
+                //         if (coords && coords.length > 0) {
+                //             const latLngs = coords.map(coord => [coord[1], coord[0]]);
+                            
+                //             const polygon = L.polygon(latLngs, {
+                //                 color: getDisasterColor(disasterType),
+                //                 fillColor: getDisasterColor(disasterType),
+                //                 fillOpacity: 0.4,
+                //                 weight: 3
+                //             }).addTo(polygonLayer);
+
+                //             // Fit map to polygon bounds
+                //             map.fitBounds(polygon.getBounds(), { padding: [20, 20] });
+                //         }
+                //     });
+                // }
+
+                // Clear and draw polygons
+                polygonLayer.clearLayers();
+                const allPolygonsLatLngs = [];
+                
+                if (alert.polygon_list && Array.isArray(alert.polygon_list)) {
+                    console.log(`Drawing ${alert.polygon_list.length} polygons`);
+                    
+                    alert.polygon_list.forEach((flatPolygon, index) => {
+                        if (flatPolygon.length >= 6) {
+                            const latLngs = [];
+                            for (let i = 0; i < flatPolygon.length - 1; i += 2) {
+                                latLngs.push([flatPolygon[i], flatPolygon[i + 1]]);
+                            }
+                            
+                            if (latLngs.length >= 3) {
+                                allPolygonsLatLngs.push(...latLngs);
+                                
+                                const polygon = L.polygon(latLngs, {
+                                    color: '#ff4444',
+                                    weight: 3,
+                                    fillColor: '#ff6b6b',
+                                    fillOpacity: 0.4
+                                });
+                                polygonLayer.addLayer(polygon);
+                                
+                                // Add pulsing animation to polygon
+                                let pulseDirection = 1;
+                                let pulseOpacity = 0.4;
+                                
+                                const pulseInterval = setInterval(() => {
+                                    pulseOpacity += pulseDirection * 0.1;
+                                    if (pulseOpacity >= 0.7 || pulseOpacity <= 0.2) {
+                                        pulseDirection *= -1;
+                                    }
+                                    polygon.setStyle({ fillOpacity: pulseOpacity });
+                                }, 200);
+                                
+                                // Store interval ID for cleanup
+                                polygon._pulseInterval = pulseInterval;
+                            }
+                        }
+                    });
+
+                    // Fit map to show all polygons if any exist
+                    if (allPolygonsLatLngs.length > 0) {
+                        try {
+                            const bounds = L.latLngBounds(allPolygonsLatLngs);
+                            map.fitBounds(bounds, { padding: [20, 20] });
+                        } catch (error) {
+                            console.warn('Error fitting map bounds:', error);
+                        }
+                    }
+                } else {
+                    console.log('No valid polygon data available');
+                }
+            };
+            
+
+
+
+                
+
+
+
+
+
+
+
+
+
+
+
+        
+
+            const getDisasterColor = (type) => {
+                switch(type) {
+                    case 'rain':
+                    case 'hurricane':
+                        return '#309898'; // Teal for water-related
+                    case 'thunderstorm':
+                        return '#6BB6FF'; // Light blue for storms
+                    case 'fire':
+                        return '#CB0404'; // Red for fire
+                    case 'earthquake':
+                        return '#8B5FBF'; // Purple for earthquakes
+                    default:
+                        return '#FF9F00'; // Orange for general alerts
+                }
+            };
+
+            // Initialize Socket.IO connection
+            const socket = io(SERVER_URL + '/live_feed');
+
+            socket.on('connect', () => {
+                console.log('Connected to /live_feed namespace');
+                statusDiv.className = 'status-indicator status-connected';
+                statusText.textContent = 'Connected';
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+                statusDiv.className = 'status-indicator status-disconnected';
+                statusText.textContent = 'Disconnected';
+            });
+
+            socket.on('alert_data', (data) => {
+                processAlert(data);
+            });
+
+            // Start demo mode after initial animations complete (comment out when using real data)
+            // setTimeout(() => {
+            //     testDisasters();
+            // }, 6000);
+        });
+    </script>
+</body>
+</html>

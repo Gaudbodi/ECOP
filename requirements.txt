@@ -1,0 +1,24 @@
+# Core Flask and Web Framework
+Flask==3.0.0
+Flask-SocketIO==5.3.6
+
+# HTTP Requests and Web Scraping
+requests==2.31.0
+beautifulsoup4>=4.12.3
+urllib3>=1.26.0
+
+# AI and Text Processing
+openai==1.82.0
+
+# Data Processing and Analysis
+pandas>=1.5.0
+
+# XML Processing (built-in xml.etree.ElementTree is used, but lxml provides additional features)
+lxml>=4.9.0
+
+# Production Server Support
+gunicorn>=20.1.0
+eventlet>=0.33.0
+
+# Note: The following modules are built-in to Python and don't need installation:
+# uuid, logging, datetime, json, os, re, platform, typing, xml.etree.ElementTree

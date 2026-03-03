@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Sentinel's Realm - Public Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .display-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Header with System Branding */
+        .header {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .system-logo {
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #00d9ff;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.active {
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        .status-dot.warning {
+            background: #ffaa00;
+            box-shadow: 0 0 10px #ffaa00;
+        }
+
+        .status-dot.alert {
+            background: #ff3333;
+            box-shadow: 0 0 10px #ff3333;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Alert Display Area */
+        .alert-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+        }
+
+        .alert-box {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            border: 4px solid;
+            border-radius: 8px;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Certainty Gradient Border Effect */
+        .alert-box::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            border-radius: 8px;
+            z-index: -1;
+            opacity: 0;
+        }
+
+        .alert-box.low-certainty::before {
+            animation: shimmer 3s infinite;
+            opacity: 1;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        /* Pixel Grid Pattern for Uncertainty */
+        .alert-box.low-certainty::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px);
+            pointer-events: none;
+            animation: gridShift 4s infinite linear;
+        }
+
+        @keyframes gridShift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(4px, 4px); }
+        }
+
+        /* Alert Severity Colors */
+        .alert-box.warning {
+            border-color: #ff3333;
+            box-shadow: 0 0 40px rgba(255, 51, 51, 0.3);
+        }
+
+        .alert-box.watch {
+            border-color: #ffaa00;
+            box-shadow: 0 0 40px rgba(255, 170, 0, 0.3);
+        }
+
+        .alert-box.all-clear {
+            border-color: #00ff88;
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
+        }
+
+        /* Three Critical Data Points */
+        .alert-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .hazard-type {
+            font-size: 48px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border-radius: 4px;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .severity-badge.warning {
+            background: #ff3333;
+            color: white;
+        }
+
+        .severity-badge.watch {
+            background: #ffaa00;
+            color: black;
+        }
+
+        .severity-badge.all-clear {
+            background: #00ff88;
+            color: black;
+        }
+
+        .alert-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .info-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+
+        .info-section.location {
+            border-left-color: #00d9ff;
+        }
+
+        .info-section.action {
+            border-left-color: #ff3333;
+        }
+
+        .info-label {
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .info-content {
+            font-size: 32px;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        /* Action Button */
+        .action-section {
+            grid-column: 1 / -1;
+            text-align: center;
+        }
+
+        .action-button {
+            background: #ff3333;
+            color: white;
+            border: none;
+            padding: 30px 60px;
+            font-size: 36px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255, 51, 51, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(255, 51, 51, 0.6);
+        }
+
+        .action-button.hold-to-confirm {
+            background: #ffaa00;
+            box-shadow: 0 10px 30px rgba(255, 170, 0, 0.4);
+        }
+
+        .action-button .hold-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        /* Additional Information Footer */
+        .alert-footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 18px;
+            color: #aaa;
+        }
+
+        .certainty-indicator {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* No Active Alert State */
+        .no-alert {
+            text-align: center;
+        }
+
+        .no-alert-icon {
+            font-size: 120px;
+            margin-bottom: 30px;
+            opacity: 0.5;
+        }
+
+        .no-alert-text {
+            font-size: 36px;
+            color: #888;
+        }
+
+        /* Bottom Ticker for Additional Info */
+        .ticker {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 0;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .ticker-content {
+            display: flex;
+            animation: scroll 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        .ticker-item {
+            padding: 0 40px;
+            font-size: 18px;
+            color: #aaa;
+        }
+
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="display-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="system-logo">NATIONAL SENTINEL</div>
+            <div class="status-indicator">
+                <div class="status-dot warning"></div>
+                <span id="systemStatus">ACTIVE MONITORING</span>
+            </div>
+        </div>
+
+        <!-- Main Alert Display -->
+        <div class="alert-container">
+            <div id="alertBox" class="alert-box warning low-certainty">
+                <div class="alert-header">
+                    <div class="hazard-type" id="hazardType">FLASH FLOOD</div>
+                    <div class="severity-badge warning" id="severityBadge">WARNING</div>
+                </div>
+
+                <div class="alert-body">
+                    <div class="info-section location">
+                        <div class="info-label">Location</div>
+                        <div class="info-content" id="locationInfo">Downtown District & River Valley Areas</div>
+                    </div>
+
+                    <div class="info-section action">
+                        <div class="info-label">Immediate Action Required</div>
+                        <div class="info-content" id="actionInfo">Evacuate to Higher Ground Immediately</div>
+                    </div>
+
+                    <div class="action-section">
+                        <button class="action-button" id="actionButton">
+                            EVACUATE NOW
+                            <div class="hold-progress" id="holdProgress"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert-footer">
+                    <div>Issued: <span id="issueTime">2025-10-01 14:23</span> | Valid Until: <span id="validUntil">2025-10-01 18:00</span></div>
+                    <div class="certainty-indicator" id="certaintyIndicator">Certainty: 85% | Lead Time: 45 minutes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Ticker -->
+        <div class="ticker">
+            <div class="ticker-content">
+                <div class="ticker-item">🌐 Emergency Hotline: 911</div>
+                <div class="ticker-item">📍 Nearest Shelter: City Community Center - 2.3km North</div>
+                <div class="ticker-item">⚠️ Road Closures: River Road, Main Street Bridge</div>
+                <div class="ticker-item">🔔 Next Update: 15:00</div>
+                <div class="ticker-item">🌐 Emergency Hotline: 911</div>
+                <div class="ticker-item">📍 Nearest Shelter: City Community Center - 2.3km North</div>
+                <div class="ticker-item">⚠️ Road Closures: River Road, Main Street Bridge</div>
+                <div class="ticker-item">🔔 Next Update: 15:00</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const scenarios = {
+            flashFlood: {
+                hazard: 'FLASH FLOOD',
+                severity: 'warning',
+                location: 'Downtown District & River Valley Areas',
+                action: 'Evacuate to Higher Ground Immediately',
+                buttonText: 'EVACUATE NOW',
+                certainty: 'Certainty: 85% | Lead Time: 45 minutes',
+                lowCertainty: false
+            },
+            earthquake: {
+                hazard: 'EARTHQUAKE',
+                severity: 'warning',
+                location: 'Metropolitan Area - All Zones',
+                action: 'Drop, Cover, and Hold On',
+                buttonText: 'TAKE COVER',
+                certainty: 'Certainty: 98% | Immediate',
+                lowCertainty: false
+            },
+            hurricane: {
+                hazard: 'HURRICANE WATCH',
+                severity: 'watch',
+                location: 'Coastal Regions - Zones A, B, C',
+                action: 'Prepare Emergency Kit & Monitor Updates',
+                buttonText: 'VIEW PREPARATION GUIDE',
+                certainty: 'Certainty: 65% | Lead Time: 72 hours',
+                lowCertainty: true
+            },
+            allClear: {
+                hazard: 'ALL CLEAR',
+                severity: 'all-clear',
+                location: 'All Areas',
+                action: 'Normal Operations Resumed',
+                buttonText: 'VIEW STATUS',
+                certainty: 'System Status: Normal',
+                lowCertainty: false
+            }
+        };
+
+        let holdTimer = null;
+        let holdProgress = 0;
+
+        const actionButton = document.getElementById('actionButton');
+        const holdProgressBar = document.getElementById('holdProgress');
+
+        actionButton.addEventListener('mousedown', startHold);
+        actionButton.addEventListener('mouseup', cancelHold);
+        actionButton.addEventListener('mouseleave', cancelHold);
+        actionButton.addEventListener('touchstart', startHold);
+        actionButton.addEventListener('touchend', cancelHold);
+
+        function startHold(e) {
+            e.preventDefault();
+            holdProgress = 0;
+            holdTimer = setInterval(() => {
+                holdProgress += 2;
+                holdProgressBar.style.width = holdProgress + '%';
+                if (holdProgress >= 100) {
+                    confirmAction();
+                    cancelHold();
+                }
+            }, 30);
+        }
+
+        function cancelHold() {
+            if (holdTimer) {
+                clearInterval(holdTimer);
+                holdTimer = null;
+            }
+            setTimeout(() => {
+                holdProgress = 0;
+                holdProgressBar.style.width = '0%';
+            }, 100);
+        }
+
+        function confirmAction() {
+            alert('Action Confirmed: Emergency Services Notified');
+        }
+
+        function updateDisplay(scenario) {
+            const data = scenarios[scenario];
+            const alertBox = document.getElementById('alertBox');
+            
+            document.getElementById('hazardType').textContent = data.hazard;
+            document.getElementById('locationInfo').textContent = data.location;
+            document.getElementById('actionInfo').textContent = data.action;
+            document.getElementById('actionButton').textContent = data.buttonText;
+            document.getElementById('certaintyIndicator').textContent = data.certainty;
+            
+            const severityBadge = document.getElementById('severityBadge');
+            severityBadge.textContent = data.severity.toUpperCase();
+            severityBadge.className = 'severity-badge ' + data.severity;
+            
+            alertBox.className = 'alert-box ' + data.severity + (data.lowCertainty ? ' low-certainty' : '');
+            
+            const statusDot = document.querySelector('.status-dot');
+            statusDot.className = 'status-dot ' + (data.severity === 'all-clear' ? 'active' : data.severity);
+            
+            const now = new Date();
+            document.getElementById('issueTime').textContent = now.toLocaleString();
+            const validTime = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+            document.getElementById('validUntil').textContent = validTime.toLocaleString();
+        }
+
+        // Cycle through scenarios for demo
+        let currentScenario = 0;
+        const scenarioKeys = Object.keys(scenarios);
+        
+        setInterval(() => {
+            currentScenario = (currentScenario + 1) % scenarioKeys.length;
+            updateDisplay(scenarioKeys[currentScenario]);
+        }, 12000);
+
+        // Initialize with first scenario
+        updateDisplay(scenarioKeys[0]);
+    </script>
+</body>
+</html>

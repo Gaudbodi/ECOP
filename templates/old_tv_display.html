@@ -1,0 +1,749 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Alert System</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* Map Container */
+#map {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 50%;
+    z-index: 1;
+    border-left: 2px solid rgba(0, 212, 255, 0.3);
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+}
+        .leaflet-tile-pane {
+            filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+        }
+
+        /* Alert Header */
+.alert-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 50%; /* Only cover the left side */
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+    padding: 20px 30px;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+        .emergency-badge {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255, 0, 0, 0.15);
+            border: 2px solid rgba(255, 0, 0, 0.5);
+            border-radius: 50px;
+            padding: 12px 25px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(255, 0, 0, 0.8);
+                transform: scale(1.02);
+            }
+        }
+
+        .emergency-badge svg {
+            width: 35px;
+            height: 35px;
+            fill: #ff4444;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .emergency-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .emergency-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+
+        .emergency-type {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: statusPulse 2s infinite;
+        }
+
+        .status-connected .status-dot {
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        .status-disconnected .status-dot {
+            background: #ff4444;
+            box-shadow: 0 0 10px #ff4444;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .status-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Instructions Container */
+.instructions-container {
+    position: absolute;
+    top: 15%;
+    left: 0;
+    bottom: 0;
+    width: 50%;
+    background: linear-gradient(135deg, rgba(10,10,20,0.95) 0%, rgba(20,20,35,0.98) 100%);
+    padding: 30px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+        .instructions-header {
+            margin-bottom: 25px;
+            opacity: 0;
+            animation: fadeInDown 0.6s forwards;
+        }
+
+        .instructions-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff 0%, #0099cc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .instructions-subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+        }
+
+        .instruction-items {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border-left: 4px solid #00d4ff;
+            opacity: 0;
+            transform: translateX(-30px);
+            animation: slideInLeft 0.6s forwards;
+            transition: all 0.3s ease;
+        }
+
+        .instruction-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .instruction-icon {
+            flex-shrink: 0;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(0, 153, 204, 0.2) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .instruction-icon svg {
+            width: 35px;
+            height: 35px;
+            fill: #00d4ff;
+        }
+
+        .instruction-text {
+            flex: 1;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .instruction-number {
+            flex-shrink: 0;
+            width: 35px;
+            height: 35px;
+            background: rgba(0, 212, 255, 0.2);
+            border: 2px solid #00d4ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #00d4ff;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* No Alert State */
+        .no-alert {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            opacity: 0.5;
+        }
+
+        .no-alert svg {
+            width: 80px;
+            height: 80px;
+            fill: rgba(255, 255, 255, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .no-alert h3 {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .no-alert p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Scrollbar Styling */
+        .instructions-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .instructions-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .instructions-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .instructions-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 212, 255, 0.5);
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    
+    <div class="alert-header">
+        <div class="emergency-badge" id="emergency-badge" style="display: none;">
+            <svg id="main-icon" viewBox="0 0 24 24">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            </svg>
+            <div class="emergency-text">
+                <span class="emergency-label">Emergency Alert</span>
+                <span class="emergency-type" id="emergency-type">WEATHER WARNING</span>
+            </div>
+        </div>
+        
+        <div class="status-indicator status-disconnected" id="status">
+            <span class="status-dot"></span>
+            <span class="status-text">Connecting...</span>
+        </div>
+    </div>
+
+    <div class="instructions-container">
+        <div id="no-alert-state" class="no-alert">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <h3>No Active Alerts</h3>
+            <p>System monitoring for emergency broadcasts...</p>
+        </div>
+        
+        <div id="alert-content" style="display: none;">
+            <div class="instructions-header">
+                <h2 class="instructions-title" id="headline">Emergency Instructions</h2>
+                <p class="instructions-subtitle" id="area-desc">Follow these steps immediately for your safety</p>
+            </div>
+            <div class="instruction-items" id="instruction-items"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 1. CONFIGURATION ---
+            const SERVER_IP = "192.168.8.107";            
+            const SERVER_URL = `http://${SERVER_IP}:5000`;
+
+            // --- 2. MAP INITIALIZATION ---
+            const map = L.map('map').setView([7.9465, -1.0232], 7);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+            }).addTo(map);
+            let polygonLayer = L.layerGroup().addTo(map);
+
+            // --- 3. UI ELEMENTS ---
+            const statusDiv = document.getElementById('status');
+            const statusText = statusDiv.querySelector('.status-text');
+            const emergencyBadge = document.getElementById('emergency-badge');
+            const emergencyType = document.getElementById('emergency-type');
+            const mainIcon = document.getElementById('main-icon');
+            const noAlertState = document.getElementById('no-alert-state');
+            const alertContent = document.getElementById('alert-content');
+            const headlineEl = document.getElementById('headline');
+            const areaDescEl = document.getElementById('area-desc');
+            const instructionItems = document.getElementById('instruction-items');
+
+            // --- 4. INSTRUCTION ICON MAPPING ---
+            const getInstructionIcon = (text) => {
+                const lowerText = text.toLowerCase();
+                
+                // Evacuation / Movement
+                if (lowerText.includes('evacuate') || lowerText.includes('leave') || lowerText.includes('move to higher')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/>
+                    </svg>`;
+                }
+                
+                // Stay Indoor / Shelter
+                if (lowerText.includes('stay indoor') || lowerText.includes('remain indoor') || lowerText.includes('shelter')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>`;
+                }
+                
+                // Avoid / Don't
+                if (lowerText.includes('avoid') || lowerText.includes("don't") || lowerText.includes('do not')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z"/>
+                    </svg>`;
+                }
+                
+                // Water / Flood
+                if (lowerText.includes('water') || lowerText.includes('flood')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zm0 18c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2z"/>
+                    </svg>`;
+                }
+                
+                // Emergency / Medical
+                if (lowerText.includes('emergency') || lowerText.includes('medical') || lowerText.includes('first aid')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M19 8h-2v3h-3v2h3v3h2v-3h3v-2h-3zM2 12v2h8v-2zm10-6v2H2V6zm0 12v2H2v-2z"/>
+                    </svg>`;
+                }
+                
+                // Listen / Radio / Information
+                if (lowerText.includes('listen') || lowerText.includes('radio') || lowerText.includes('monitor')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M3.24 6.15C2.51 6.43 2 7.17 2 8v12c0 1.1.89 2 2 2h16c1.11 0 2-.9 2-2V8c0-1.11-.89-2-2-2H8.3l8.26-3.34L15.88 1 3.24 6.15zM7 20c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-8h-2v-2h-2v2H4V8h16v4z"/>
+                    </svg>`;
+                }
+                
+                // Secure / Lock / Close
+                if (lowerText.includes('secure') || lowerText.includes('lock') || lowerText.includes('close')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                    </svg>`;
+                }
+                
+                // Electricity / Power
+                if (lowerText.includes('electric') || lowerText.includes('power') || lowerText.includes('unplug')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
+                    </svg>`;
+                }
+                
+                // Phone / Call
+                if (lowerText.includes('call') || lowerText.includes('phone') || lowerText.includes('contact')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                    </svg>`;
+                }
+                
+                // Default warning icon
+                return `<svg viewBox="0 0 24 24">
+                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                </svg>`;
+            };
+
+            // --- 5. PARSE AND DISPLAY INSTRUCTIONS ---
+            const parseInstructions = (instructionText) => {
+                if (!instructionText) return [];
+                
+                // Split by common delimiters (periods, semicolons, line breaks)
+                const sentences = instructionText
+                    .split(/[.;]\s+|\n+/)
+                    .map(s => s.trim())
+                    .filter(s => s.length > 5); // Filter out very short fragments
+                
+                return sentences;
+            };
+
+            const displayInstructions = (instructions) => {
+                instructionItems.innerHTML = '';
+                
+                instructions.forEach((instruction, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'instruction-item';
+                    item.style.animationDelay = `${index * 0.2}s`;
+                    
+                    item.innerHTML = `
+                        <div class="instruction-number">${index + 1}</div>
+                        <div class="instruction-icon">
+                            ${getInstructionIcon(instruction)}
+                        </div>
+                        <div class="instruction-text">${instruction}</div>
+                    `;
+                    
+                    instructionItems.appendChild(item);
+                });
+            };
+
+            // --- 6. MAIN EVENT TYPE ICON ---
+            const getMainEventIcon = (eventString = '') => {
+                const event = eventString.toLowerCase();
+                
+                if (event.includes('flood')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zm0 18c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2z"/>
+                    </svg>`;
+                } else if (event.includes('storm') || event.includes('thunder')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM13 17l-5-5 1.41-1.41L11 12.17V9h2v3.17l1.59-1.59L16 12l-3 5z"/>
+                    </svg>`;
+                } else if (event.includes('fire')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/>
+                    </svg>`;
+                } else if (event.includes('earthquake')) {
+                    return `<svg viewBox="0 0 24 24">
+                        <path d="M14.43 8l-2.43 3.87L9.57 8l-3 4.75L5 10h-2l3.57 5.75L9 20h2l2.43-3.87L16 20h2l2.43-3.87L22 20h2l-3.57-5.75L18 10h-2l-1.57 2.75z"/>
+                    </svg>`;
+                }
+                
+                // Default warning icon
+                return `<svg viewBox="0 0 24 24">
+                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                </svg>`;
+            };
+
+            // --- 7. CLEAR ALERT FUNCTION ---
+            const clearAlert = () => {
+                // Hide alert content, show no-alert state
+                alertContent.style.display = 'none';
+                noAlertState.style.display = 'flex';
+                emergencyBadge.style.display = 'none';
+                
+                // Clear map polygons
+                polygonLayer.clearLayers();
+                
+                console.log('Alert cleared');
+            };
+
+            // --- 8. SOCKET.IO LOGIC ---
+            const socket = io(SERVER_URL + '/live_feed');
+
+            socket.on('connect', () => {
+                console.log('Connected to /live_feed namespace');
+                statusDiv.className = 'status-indicator status-connected';
+                statusText.textContent = 'Connected';
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+                statusDiv.className = 'status-indicator status-disconnected';
+                statusText.textContent = 'Disconnected';
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Connection error:', error);
+                statusDiv.className = 'status-indicator status-disconnected';
+                statusText.textContent = 'Connection Error';
+            });
+
+            socket.on('alert_data', (data) => {
+                console.log('Alert data received:', data);
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    console.warn('Invalid or empty data received');
+                    clearAlert();
+                    return;
+                }
+
+                const alert = data[0];
+                console.log('Processing alert:', alert);
+
+                // Show alert content, hide no-alert state
+                noAlertState.style.display = 'none';
+                alertContent.style.display = 'block';
+                emergencyBadge.style.display = 'flex';
+
+                // Update emergency type and icon
+                const eventType = alert['cap:event'] || alert['cap:condition'] || 'EMERGENCY';
+                emergencyType.textContent = eventType.toUpperCase();
+                mainIcon.innerHTML = getMainEventIcon(eventType);
+
+                // Update headline and area
+                headlineEl.textContent = alert['cap:headline'] || 'Emergency Alert';
+                const areaDesc = alert['location_description'] || alert['cap:areaDesc'] || 'Your Area';
+                areaDescEl.textContent = `Affected Area: ${areaDesc}`;
+
+                // Parse and display instructions
+                const instructionText = alert['cap:instruction'] || 'Follow instructions from local authorities. Stay tuned for updates.';
+                const instructions = parseInstructions(instructionText);
+                displayInstructions(instructions);
+
+                // Clear and draw polygons
+                polygonLayer.clearLayers();
+                const allPolygonsLatLngs = [];
+                
+                if (alert.polygon_list && Array.isArray(alert.polygon_list)) {
+                    console.log(`Drawing ${alert.polygon_list.length} polygons`);
+                    
+                    alert.polygon_list.forEach((flatPolygon, index) => {
+                        if (flatPolygon.length >= 6) {
+                            const latLngs = [];
+                            for (let i = 0; i < flatPolygon.length - 1; i += 2) {
+                                latLngs.push([flatPolygon[i], flatPolygon[i + 1]]);
+                            }
+                            
+                            if (latLngs.length >= 3) {
+                                allPolygonsLatLngs.push(...latLngs);
+                                
+                                const polygon = L.polygon(latLngs, {
+                                    color: '#ff4444',
+                                    weight: 3,
+                                    fillColor: '#ff6b6b',
+                                    fillOpacity: 0.4
+                                });
+                                polygonLayer.addLayer(polygon);
+                                
+                                // Add pulsing animation to polygon
+                                let pulseDirection = 1;
+                                let pulseOpacity = 0.4;
+                                
+                                const pulseInterval = setInterval(() => {
+                                    pulseOpacity += pulseDirection * 0.1;
+                                    if (pulseOpacity >= 0.7 || pulseOpacity <= 0.2) {
+                                        pulseDirection *= -1;
+                                    }
+                                    polygon.setStyle({ fillOpacity: pulseOpacity });
+                                }, 200);
+                                
+                                // Store interval ID for cleanup
+                                polygon._pulseInterval = pulseInterval;
+                            }
+                        }
+                    });
+                    
+                    // Fit map to show all polygons if any exist
+                    if (allPolygonsLatLngs.length > 0) {
+                        try {
+                            const bounds = L.latLngBounds(allPolygonsLatLngs);
+                            map.fitBounds(bounds, { padding: [20, 20] });
+                        } catch (error) {
+                            console.warn('Error fitting map bounds:', error);
+                        }
+                    }
+                } else {
+                    console.log('No valid polygon data available');
+                }
+            });
+
+            // Handle alert clearing
+            socket.on('alert_cleared', () => {
+                console.log('Alert cleared by server');
+                clearAlert();
+            });
+
+            // Handle no alerts
+            socket.on('no_alerts', () => {
+                console.log('No alerts received from server');
+                clearAlert();
+            });
+
+            // --- 9. ERROR HANDLING AND RECONNECTION ---
+            socket.on('error', (error) => {
+                console.error('Socket error:', error);
+                statusDiv.className = 'status-indicator status-disconnected';
+                statusText.textContent = 'Error';
+            });
+
+            // Auto-reconnection handling
+            socket.on('reconnect', (attemptNumber) => {
+                console.log(`Reconnected after ${attemptNumber} attempts`);
+                statusDiv.className = 'status-indicator status-connected';
+                statusText.textContent = 'Connected';
+            });
+
+            socket.on('reconnect_attempt', (attemptNumber) => {
+                console.log(`Reconnection attempt ${attemptNumber}`);
+                statusText.textContent = `Reconnecting... (${attemptNumber})`;
+            });
+
+            socket.on('reconnect_error', (error) => {
+                console.error('Reconnection failed:', error);
+                statusText.textContent = 'Reconnection Failed';
+            });
+
+            socket.on('reconnect_failed', () => {
+                console.error('Reconnection failed permanently');
+                statusDiv.className = 'status-indicator status-disconnected';
+                statusText.textContent = 'Connection Failed';
+            });
+
+            // --- 10. CLEANUP ON PAGE UNLOAD ---
+            window.addEventListener('beforeunload', () => {
+                // Clear any running intervals
+                polygonLayer.eachLayer((layer) => {
+                    if (layer._pulseInterval) {
+                        clearInterval(layer._pulseInterval);
+                    }
+                });
+                
+                // Disconnect socket
+                if (socket) {
+                    socket.disconnect();
+                }
+            });
+
+            // --- 11. KEYBOARD SHORTCUTS (Optional) ---
+            document.addEventListener('keydown', (event) => {
+                // Press 'C' to manually clear alert (for testing)
+                if (event.key.toLowerCase() === 'c' && event.ctrlKey) {
+                    event.preventDefault();
+                    console.log('Manual alert clear triggered');
+                    clearAlert();
+                }
+                
+                // Press 'R' to refresh connection
+                if (event.key.toLowerCase() === 'r' && event.ctrlKey) {
+                    event.preventDefault();
+                    console.log('Manual reconnection triggered');
+                    socket.disconnect();
+                    socket.connect();
+                }
+            });
+
+            // --- 12. INITIAL STATE ---
+            console.log('Emergency Alert System initialized');
+            console.log(`Connecting to server at: ${SERVER_URL}`);
+            
+            // Set initial map view (Ghana coordinates as shown in the original)
+            map.setView([7.9465, -1.0232], 7);
+            
+        });
+    </script>
+
+
+</body>
+</html>

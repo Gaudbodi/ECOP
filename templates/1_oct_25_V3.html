@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-CoP Public Emergency Display</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #000; color: #fff;
+            overflow: hidden; height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        /* Top Header */
+        .header {
+            background: #111; padding: 2vh 4vw;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 6px solid #333; flex-shrink: 0;
+            transition: border-color 0.5s;
+        }
+        .header.warning { border-bottom-color: #d32f2f; }
+        .header.watch { border-bottom-color: #fbc02d; }
+        .header.all-clear { border-bottom-color: #388e3c; }
+
+        .system-logo { font-size: 3vh; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #fff; }
+        .status-indicator { display: flex; align-items: center; gap: 1vw; font-size: 2.5vh; font-weight: 700; text-transform: uppercase; }
+        
+        .status-dot { width: 2.5vh; height: 2.5vh; border-radius: 50%; }
+        .status-dot.warning { background: #d32f2f; box-shadow: 0 0 20px #d32f2f; animation: blink 1s infinite; }
+        .status-dot.watch { background: #fbc02d; box-shadow: 0 0 20px #fbc02d; }
+        .status-dot.all-clear { background: #388e3c; }
+        .status-dot.offline { background: #757575; }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Main Content */
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+
+        /* Map Section */
+        .map-section { flex: 1; position: relative; border-right: 6px solid #333; }
+        #map { width: 100%; height: 100%; background: #000; z-index: 1; }
+        #webglCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+
+        /* Alert Section */
+        .alert-section {
+            flex: 1; display: flex; flex-direction: column;
+            background: #0a0a0a; padding: 5vh 4vw; transition: background-color 0.5s;
+        }
+
+        .hazard-type { font-size: 8vh; font-weight: 900; text-transform: uppercase; line-height: 1.1; margin-bottom: 2vh; word-wrap: break-word; }
+        .severity-badge {
+            display: inline-block; padding: 1vh 2vw; font-size: 3vh; font-weight: 900;
+            text-transform: uppercase; border-radius: 8px; margin-bottom: 5vh; width: fit-content;
+        }
+
+        .alert-state.warning .hazard-type { color: #ff5252; }
+        .alert-state.warning .severity-badge { background: #d32f2f; color: #fff; }
+        
+        .alert-state.watch .hazard-type { color: #ffd54f; }
+        .alert-state.watch .severity-badge { background: #fbc02d; color: #000; }
+        
+        .alert-state.all-clear .hazard-type { color: #69f0ae; }
+        .alert-state.all-clear .severity-badge { background: #388e3c; color: #fff; }
+
+        .info-block { margin-bottom: 4vh; }
+        .info-label { font-size: 2.2vh; color: #888; text-transform: uppercase; font-weight: 800; margin-bottom: 0.5vh; letter-spacing: 1px; }
+        .info-value { font-size: 4vh; font-weight: 700; line-height: 1.2; color: #fff; }
+
+        /* Massive Action Block */
+        .action-block {
+            margin-top: auto; padding: 4vh 3vw; border-radius: 12px; border-left: 16px solid #555;
+            transition: all 0.5s;
+        }
+        .alert-state.warning .action-block { background: #d32f2f; border-left-color: #ff1744; }
+        .alert-state.watch .action-block { background: #fbc02d; border-left-color: #ffff00; }
+        .alert-state.all-clear .action-block { background: #2e7d32; border-left-color: #00e676; }
+
+        .action-label { font-size: 2.5vh; font-weight: 900; text-transform: uppercase; margin-bottom: 1vh; color: rgba(255,255,255,0.9); }
+        .alert-state.watch .action-label { color: rgba(0,0,0,0.7); }
+
+        .action-value { font-size: 5.5vh; font-weight: 900; line-height: 1.1; color: #fff; text-transform: uppercase; }
+        .alert-state.watch .action-value { color: #000; }
+
+        /* Ticker */
+        .ticker { background: #000; border-top: 6px solid #333; overflow: hidden; padding: 2.5vh 0; flex-shrink: 0; white-space: nowrap; }
+        .ticker-content { display: inline-block; font-size: 3.5vh; font-weight: 700; text-transform: uppercase; animation: scroll 30s linear infinite; color: #fff; }
+        .ticker-item { display: inline-block; margin-right: 8vw; }
+        .ticker-item span { color: #fbc02d; margin-right: 1vw; }
+
+        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        /* Leaflet Overrides */
+        .leaflet-container { background: #000; }
+        .leaflet-control-container { display: none; }
+    </style>
+</head>
+<body>
+    <div class="header warning" id="mainHeader">
+        <div class="system-logo">Ghana Emergency Alert System</div>
+        <div class="status-indicator">
+            <div class="status-dot warning" id="statusDot"></div>
+            <span id="systemStatus">ACTIVE ALERT</span>
+        </div>
+    </div>
+
+    <div class="main-content alert-state warning" id="alertStateContainer">
+        <div class="map-section">
+            <div id="map"></div>
+            <canvas id="webglCanvas"></canvas>
+        </div>
+
+        <div class="alert-section">
+            <div class="hazard-type" id="hazardType">LOADING ALERTS...</div>
+            <div class="severity-badge" id="severityBadge">PLEASE WAIT</div>
+
+            <div class="info-block">
+                <div class="info-label">AFFECTED LOCATION</div>
+                <div class="info-value" id="locationInfo">--</div>
+            </div>
+
+            <div class="info-block">
+                <div class="info-label">SITUATION ADVISORY</div>
+                <div class="info-value" id="contextInfo" style="font-size: 3vh; color: #ccc;">--</div>
+            </div>
+
+            <div class="action-block">
+                <div class="action-label">IMMEDIATE ACTION REQUIRED</div>
+                <div class="action-value" id="actionInfo">AWAITING INSTRUCTIONS</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ticker">
+        <div class="ticker-content">
+            <div class="ticker-item"><span>⚠️</span> OFFICIAL EMERGENCY BROADCAST</div>
+            <div class="ticker-item"><span>📞</span> EMERGENCY HOTLINE: 112 / 193</div>
+            <div class="ticker-item"><span>📻</span> TUNE IN TO LOCAL RADIO FOR UPDATES</div>
+            <div class="ticker-item"><span>📱</span> MONITOR SMS FOR DIRECT ALERTS</div>
+            <div class="ticker-item"><span>⚠️</span> OFFICIAL EMERGENCY BROADCAST</div>
+            <div class="ticker-item"><span>📞</span> EMERGENCY HOTLINE: 112 / 193</div>
+            <div class="ticker-item"><span>📻</span> TUNE IN TO LOCAL RADIO FOR UPDATES</div>
+            <div class="ticker-item"><span>📱</span> MONITOR SMS FOR DIRECT ALERTS</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+    <script>
+        const map = L.map('map', { center: [7.9465, -1.0232], zoom: 7, zoomControl: false, attributionControl: false });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+
+        let currentAffectedLayer = null;
+
+        // --- WebGL Particle System (Rain/Fire) ---
+        const canvas = document.getElementById('webglCanvas');
+        const gl = canvas.getContext('webgl', { alpha: true });
+        if (gl) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); }
+
+        function resizeCanvas() { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; if (gl) gl.viewport(0, 0, canvas.width, canvas.height); }
+        resizeCanvas(); window.addEventListener('resize', resizeCanvas);
+
+        const vertexShaderSource = `
+            attribute vec2 a_position; attribute float a_size; attribute float a_life;
+            uniform vec2 u_resolution; varying float v_life;
+            void main() { vec2 clipSpace = (a_position / u_resolution) * 2.0 - 1.0; gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); gl_PointSize = a_size; v_life = a_life; }
+        `;
+        const fragmentShaderSource = `
+            precision highp float; uniform vec3 u_color; uniform float u_particleType; varying float v_life;
+            void main() {
+                vec2 uv = gl_PointCoord; vec2 center = uv - vec2(0.5); float dist = length(center);
+                float alpha = (1.0 - smoothstep(0.0, 0.5, dist)) * v_life;
+                gl_FragColor = vec4(u_color, alpha);
+            }
+        `;
+
+        let program, positionLocation, sizeLocation, lifeLocation, resolutionLocation, colorLocation, particleTypeLocation;
+        if (gl) {
+            const vs = gl.createShader(gl.VERTEX_SHADER); gl.shaderSource(vs, vertexShaderSource); gl.compileShader(vs);
+            const fs = gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(fs, fragmentShaderSource); gl.compileShader(fs);
+            program = gl.createProgram(); gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program);
+            positionLocation = gl.getAttribLocation(program, 'a_position'); sizeLocation = gl.getAttribLocation(program, 'a_size'); lifeLocation = gl.getAttribLocation(program, 'a_life');
+            resolutionLocation = gl.getUniformLocation(program, 'u_resolution'); colorLocation = gl.getUniformLocation(program, 'u_color');
+            particleTypeLocation = gl.getUniformLocation(program, 'u_particleType');
+        }
+
+        class WebGLParticleSystem {
+            constructor() { this.maxParticles = 2000; this.particles = []; this.particleType = 'rain'; this.mapBounds = null; this.color = [1, 1, 1]; if(gl){ this.posBuf = gl.createBuffer(); this.sizeBuf = gl.createBuffer(); this.lifeBuf = gl.createBuffer(); } }
+            createParticle() {
+                if (!this.mapBounds) return null; const b = this.mapBounds;
+                return { lat: b.getSouth() + Math.random() * (b.getNorth() - b.getSouth()), lng: b.getWest() + Math.random() * (b.getEast() - b.getWest()), alt: this.particleType === 'rain' ? 500 + Math.random() * 500 : 0, vy: this.particleType === 'rain' ? -15 - Math.random() * 10 : 0, size: 5 + Math.random() * 5, life: 1.0, decay: 0.01 };
+            }
+            update() {
+                if (!gl) return; this.particles = this.particles.filter(p => p.life > 0);
+                while (this.particles.length < this.maxParticles && this.mapBounds) { const p = this.createParticle(); if (p) this.particles.push(p); else break; }
+                this.particles.forEach(p => { if (this.particleType === 'rain') { p.alt += p.vy; if (p.alt < 0) p.life = 0; } else { p.life -= p.decay; } });
+            }
+            render() {
+                if (!gl || this.particles.length === 0) return;
+                gl.useProgram(program); gl.uniform2f(resolutionLocation, canvas.width, canvas.height); gl.uniform3fv(colorLocation, this.color);
+                const pos = new Float32Array(this.particles.length * 2); const sizes = new Float32Array(this.particles.length); const lives = new Float32Array(this.particles.length);
+                this.particles.forEach((p, i) => { const pt = map.latLngToContainerPoint([p.lat, p.lng]); pos[i*2] = pt.x; pos[i*2+1] = pt.y - (p.alt || 0); sizes[i] = p.size; lives[i] = p.life; });
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.posBuf); gl.bufferData(gl.ARRAY_BUFFER, pos, gl.DYNAMIC_DRAW); gl.enableVertexAttribArray(positionLocation); gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.sizeBuf); gl.bufferData(gl.ARRAY_BUFFER, sizes, gl.DYNAMIC_DRAW); gl.enableVertexAttribArray(sizeLocation); gl.vertexAttribPointer(sizeLocation, 1, gl.FLOAT, false, 0, 0);
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.lifeBuf); gl.bufferData(gl.ARRAY_BUFFER, lives, gl.DYNAMIC_DRAW); gl.enableVertexAttribArray(lifeLocation); gl.vertexAttribPointer(lifeLocation, 1, gl.FLOAT, false, 0, 0);
+                gl.drawArrays(gl.POINTS, 0, this.particles.length);
+            }
+        }
+        const particleSystem = new WebGLParticleSystem();
+        function animate() { if (gl) { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); particleSystem.update(); particleSystem.render(); } requestAnimationFrame(animate); }
+
+        // --- Alert Handling ---
+        let activeScenarios = [];
+        let scenarioInterval;
+        let currentScenarioIndex = 0;
+
+        function updateDisplay(scenario) {
+            if (!scenario) return;
+            document.getElementById('hazardType').textContent = scenario.hazard;
+            document.getElementById('severityBadge').textContent = scenario.severity;
+            document.getElementById('locationInfo').textContent = scenario.locationText;
+            document.getElementById('actionInfo').textContent = scenario.actionText;
+            document.getElementById('contextInfo').textContent = scenario.contextual_advice || 'NO ADDITIONAL CONTEXT';
+
+            const header = document.getElementById('mainHeader');
+            const stateContainer = document.getElementById('alertStateContainer');
+            header.className = 'header ' + scenario.severityClass;
+            stateContainer.className = 'main-content alert-state ' + scenario.severityClass;
+
+            if (currentAffectedLayer) map.removeLayer(currentAffectedLayer);
+
+            if (scenario.affectedArea && scenario.affectedArea.length >= 3) {
+                const color = scenario.severityClass === 'warning' ? '#ff1744' : '#fbc02d';
+                currentAffectedLayer = L.polygon(scenario.affectedArea, { color: color, fillColor: color, fillOpacity: 0.3, weight: 6 }).addTo(map);
+                const bounds = L.latLngBounds(scenario.affectedArea);
+                map.flyToBounds(bounds, { padding: [50, 50], duration: 2 });
+                particleSystem.mapBounds = bounds;
+                particleSystem.particleType = scenario.particleType;
+                particleSystem.color = scenario.color;
+                particleSystem.particles = [];
+            } else {
+                map.flyTo(scenario.center, scenario.zoom, { duration: 2 });
+                particleSystem.mapBounds = null;
+            }
+        }
+
+        function transformAlertToScenario(alert) {
+            const hazard = (alert.event || alert['cap:event'] || alert.condition || "ALERT").toUpperCase();
+            let severity = (alert.severity || alert['cap:severity'] || "Unknown").toUpperCase();
+            let severityClass = "watch";
+            if (severity === "EXTREME" || severity === "SEVERE") severityClass = "warning";
+            if (severity === "MODERATE" || severity === "MINOR") severityClass = "watch";
+
+            let particleType = null, color = [1,1,1];
+            if (hazard.toLowerCase().includes('rain') || hazard.toLowerCase().includes('flood') || hazard.toLowerCase().includes('storm')) {
+                particleType = 'rain'; color = [0.6, 0.8, 1.0];
+            } else if (hazard.toLowerCase().includes('fire')) {
+                particleType = 'fire'; color = [1.0, 0.5, 0.0];
+            }
+
+            let affectedArea = null;
+            let polygonCoords = [];
+            if (alert.areas && alert.areas[0] && alert.areas[0].polygon) {
+                const poly = alert.areas[0].polygon;
+                // Handle both flat array and object array
+                if (Array.isArray(poly)) {
+                    if (typeof poly[0] === 'number') {
+                        for(let i=0; i<poly.length; i+=2) polygonCoords.push([poly[i], poly[i+1]]);
+                    } else {
+                        poly.forEach(p => polygonCoords.push([p.latitude || p[0], p.longitude || p[1]]));
+                    }
+                }
+            } else if (alert.polygon_list && alert.polygon_list[0]) {
+                const flat = alert.polygon_list[0];
+                for(let i=0; i<flat.length; i+=2) polygonCoords.push([flat[i], flat[i+1]]);
+            }
+            if (polygonCoords.length >= 3) affectedArea = polygonCoords;
+
+            return {
+                hazard: hazard,
+                severity: severity,
+                severityClass: severityClass,
+                locationText: alert.areaDesc || alert.location_description || "GHANA NATIONAL SECTOR",
+                actionText: alert.instruction || alert['cap:instruction'] || "FOLLOW LOCAL GUIDANCE",
+                contextual_advice: alert.contextual_advice || alert.description || "",
+                center: [alert.latitude || 7.9, alert.longitude || -1.0],
+                zoom: affectedArea ? 10 : 7,
+                particleType: particleType,
+                affectedArea: affectedArea,
+                color: color
+            };
+        }
+
+        function getMonitoringScenario() {
+            return {
+                hazard: "SYSTEM MONITORING", severity: "NORMAL", severityClass: "all-clear",
+                locationText: "All National Districts", actionText: "NO IMMEDIATE THREATS",
+                contextual_advice: "All sensors online. Systems normal.",
+                center: [7.9465, -1.0232], zoom: 7, particleType: null
+            };
+        }
+
+        function cycleScenarios() {
+            if (scenarioInterval) clearInterval(scenarioInterval);
+            if (activeScenarios.length > 0) {
+                currentScenarioIndex = (currentScenarioIndex + 1) % activeScenarios.length;
+                updateDisplay(activeScenarios[currentScenarioIndex]);
+                if (activeScenarios.length > 1) scenarioInterval = setInterval(cycleScenarios, 15000);
+            } else { updateDisplay(getMonitoringScenario()); }
+        }
+
+        const socket = io(window.location.origin + "/live_feed");
+        socket.on('alert_data', (data) => {
+            console.log('Received real-time alert:', data);
+            // Data can be a single alert object or an array
+            const alerts = Array.isArray(data) ? data : [data];
+            if (alerts.length > 0) {
+                activeScenarios = alerts.map(transformAlertToScenario);
+                currentScenarioIndex = -1; cycleScenarios();
+            }
+        });
+
+        async function fetchInitial() {
+            try {
+                // Unified endpoint for both Manual and GMet alerts
+                const res = await fetch('/get_active_alerts');
+                const alerts = await res.json();
+                if (alerts && alerts.length > 0) {
+                    activeScenarios = alerts.map(transformAlertToScenario);
+                    currentScenarioIndex = -1; cycleScenarios();
+                } else { updateDisplay(getMonitoringScenario()); }
+            } catch (e) { updateDisplay(getMonitoringScenario()); }
+        }
+
+        fetchInitial();
+        animate();
+    </script>
+</body>
+</html>

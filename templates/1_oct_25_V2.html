@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Sentinel's Realm - Public Display</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .display-container {
+            width: 100%;
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr auto;
+            gap: 0;
+        }
+
+        /* Header with System Branding */
+        .header {
+            grid-column: 1 / -1;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .system-logo {
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #00d9ff;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.active {
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        .status-dot.warning {
+            background: #ffaa00;
+            box-shadow: 0 0 10px #ffaa00;
+        }
+
+        .status-dot.alert {
+            background: #ff3333;
+            box-shadow: 0 0 10px #ff3333;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Map Container */
+        .map-container {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #0a0e27;
+        }
+
+        #particleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Alert Info Panel */
+        .alert-panel {
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .alert-box {
+            background: rgba(0, 0, 0, 0.7);
+            border: 4px solid;
+            border-radius: 8px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        /* Certainty Gradient Border Effect */
+        .alert-box::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            border-radius: 8px;
+            z-index: -1;
+            opacity: 0;
+        }
+
+        .alert-box.low-certainty::before {
+            animation: shimmer 3s infinite;
+            opacity: 1;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        /* Pixel Grid Pattern for Uncertainty */
+        .alert-box.low-certainty::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px);
+            pointer-events: none;
+            animation: gridShift 4s infinite linear;
+        }
+
+        @keyframes gridShift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(4px, 4px); }
+        }
+
+        /* Alert Severity Colors */
+        .alert-box.warning {
+            border-color: #ff3333;
+            box-shadow: 0 0 40px rgba(255, 51, 51, 0.3);
+        }
+
+        .alert-box.watch {
+            border-color: #ffaa00;
+            box-shadow: 0 0 40px rgba(255, 170, 0, 0.3);
+        }
+
+        .alert-box.all-clear {
+            border-color: #00ff88;
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
+        }
+
+        /* Three Critical Data Points */
+        .alert-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .hazard-type {
+            font-size: 42px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 15px;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            border-radius: 4px;
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .severity-badge.warning {
+            background: #ff3333;
+            color: white;
+        }
+
+        .severity-badge.watch {
+            background: #ffaa00;
+            color: black;
+        }
+
+        .severity-badge.all-clear {
+            background: #00ff88;
+            color: black;
+        }
+
+        .alert-body {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .info-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+
+        .info-section.location {
+            border-left-color: #00d9ff;
+        }
+
+        .info-section.action {
+            border-left-color: #ff3333;
+        }
+
+        .info-label {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .info-content {
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1.4;
+        }
+
+        /* Action Button */
+        .action-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .action-button {
+            background: #ff3333;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255, 51, 51, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(255, 51, 51, 0.6);
+        }
+
+        .action-button .hold-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        /* Additional Information Footer */
+        .alert-footer {
+            text-align: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .certainty-indicator {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 6px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* Bottom Ticker for Additional Info */
+        .ticker {
+            grid-column: 1 / -1;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 0;
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .ticker-content {
+            display: flex;
+            animation: scroll 30s linear infinite;
+            white-space: nowrap;
+        }
+
+        .ticker-item {
+            padding: 0 40px;
+            font-size: 18px;
+            color: #aaa;
+        }
+
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Custom Leaflet Styling */
+        .leaflet-container {
+            background: #0a0e27;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            border: 2px solid #00d9ff;
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(0, 0, 0, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="display-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="system-logo">THE SENTINEL'S REALM</div>
+            <div class="status-indicator">
+                <div class="status-dot warning"></div>
+                <span id="systemStatus">ACTIVE MONITORING</span>
+            </div>
+        </div>
+
+        <!-- Map Container with Particle Canvas -->
+        <div class="map-container">
+            <div id="map"></div>
+            <canvas id="particleCanvas"></canvas>
+        </div>
+
+        <!-- Alert Info Panel -->
+        <div class="alert-panel">
+            <div id="alertBox" class="alert-box warning">
+                <div class="alert-header">
+                    <div class="hazard-type" id="hazardType">FLASH FLOOD</div>
+                    <div class="severity-badge warning" id="severityBadge">WARNING</div>
+                </div>
+
+                <div class="alert-body">
+                    <div class="info-section location">
+                        <div class="info-label">Location</div>
+                        <div class="info-content" id="locationInfo">Downtown District & River Valley Areas</div>
+                    </div>
+
+                    <div class="info-section action">
+                        <div class="info-label">Immediate Action Required</div>
+                        <div class="info-content" id="actionInfo">Evacuate to Higher Ground Immediately</div>
+                    </div>
+
+                    <div class="action-section">
+                        <button class="action-button" id="actionButton">
+                            EVACUATE NOW
+                            <div class="hold-progress" id="holdProgress"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert-footer">
+                    <div>Issued: <span id="issueTime">2025-10-01 14:23</span></div>
+                    <div>Valid Until: <span id="validUntil">2025-10-01 18:00</span></div>
+                    <div class="certainty-indicator" id="certaintyIndicator">Certainty: 85% | Lead Time: 45 minutes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Ticker -->
+        <div class="ticker">
+            <div class="ticker-content">
+                <div class="ticker-item">🌐 Emergency Hotline: 911</div>
+                <div class="ticker-item">📍 Nearest Shelter: City Community Center - 2.3km North</div>
+                <div class="ticker-item">⚠️ Road Closures: River Road, Main Street Bridge</div>
+                <div class="ticker-item">🔔 Next Update: 15:00</div>
+                <div class="ticker-item">🌐 Emergency Hotline: 911</div>
+                <div class="ticker-item">📍 Nearest Shelter: City Community Center - 2.3km North</div>
+                <div class="ticker-item">⚠️ Road Closures: River Road, Main Street Bridge</div>
+                <div class="ticker-item">🔔 Next Update: 15:00</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script>
+        // Initialize Map
+        const map = L.map('map', {
+            center: [5.6037, -0.1870], // Accra, Ghana
+            zoom: 12,
+            zoomControl: false,
+            attributionControl: false
+        });
+
+        // Dark tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        // Particle System
+        class ParticleSystem {
+            constructor(canvas, map) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.map = map;
+                this.particles = [];
+                this.maxParticles = 300;
+                this.particleType = 'rain';
+                this.affectedArea = null;
+                
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+                this.animate();
+            }
+
+            resizeCanvas() {
+                this.canvas.width = this.canvas.offsetWidth;
+                this.canvas.height = this.canvas.offsetHeight;
+            }
+
+            setParticleType(type, affectedArea) {
+                this.particleType = type;
+                this.affectedArea = affectedArea;
+                this.particles = [];
+            }
+
+            isPointInAffectedArea(x, y) {
+                if (!this.affectedArea) return true;
+                
+                const point = this.map.containerPointToLatLng([x, y]);
+                return this.affectedArea.contains(point);
+            }
+
+            createParticle() {
+                const x = Math.random() * this.canvas.width;
+                const y = -10;
+                
+                // Check if particle should spawn in affected area
+                if (!this.isPointInAffectedArea(x, y) && this.affectedArea) {
+                    return null;
+                }
+
+                switch(this.particleType) {
+                    case 'rain':
+                        return {
+                            x: x,
+                            y: y,
+                            speed: 8 + Math.random() * 4,
+                            length: 10 + Math.random() * 10,
+                            opacity: 0.3 + Math.random() * 0.4,
+                            width: 1 + Math.random() * 1
+                        };
+                    case 'flood':
+                        return {
+                            x: x,
+                            y: y,
+                            speed: 3 + Math.random() * 2,
+                            size: 3 + Math.random() * 4,
+                            opacity: 0.4 + Math.random() * 0.3,
+                            angle: Math.random() * Math.PI * 2,
+                            wobble: Math.random() * 2
+                        };
+                    case 'wind':
+                        return {
+                            x: x,
+                            y: Math.random() * this.canvas.height,
+                            speed: 5 + Math.random() * 3,
+                            length: 15 + Math.random() * 15,
+                            opacity: 0.2 + Math.random() * 0.3,
+                            angle: -Math.PI / 6 + (Math.random() - 0.5) * 0.5
+                        };
+                    case 'earthquake':
+                        return {
+                            x: this.canvas.width / 2,
+                            y: this.canvas.height / 2,
+                            radius: 0,
+                            maxRadius: 50 + Math.random() * 100,
+                            speed: 2 + Math.random() * 2,
+                            opacity: 0.5,
+                            decay: 0.01
+                        };
+                }
+            }
+
+            updateParticle(p) {
+                switch(this.particleType) {
+                    case 'rain':
+                        p.y += p.speed;
+                        if (p.y > this.canvas.height) {
+                            return false;
+                        }
+                        break;
+                    case 'flood':
+                        p.y += p.speed;
+                        p.x += Math.sin(p.y / 20 + p.wobble) * 0.5;
+                        if (p.y > this.canvas.height) {
+                            return false;
+                        }
+                        break;
+                    case 'wind':
+                        p.x += Math.cos(p.angle) * p.speed;
+                        p.y += Math.sin(p.angle) * p.speed;
+                        if (p.x > this.canvas.width || p.y > this.canvas.height) {
+                            return false;
+                        }
+                        break;
+                    case 'earthquake':
+                        p.radius += p.speed;
+                        p.opacity -= p.decay;
+                        if (p.opacity <= 0 || p.radius > p.maxRadius) {
+                            return false;
+                        }
+                        break;
+                }
+                return true;
+            }
+
+            drawParticle(p) {
+                this.ctx.save();
+                
+                switch(this.particleType) {
+                    case 'rain':
+                        this.ctx.strokeStyle = `rgba(100, 150, 255, ${p.opacity})`;
+                        this.ctx.lineWidth = p.width;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(p.x, p.y);
+                        this.ctx.lineTo(p.x, p.y + p.length);
+                        this.ctx.stroke();
+                        break;
+                    case 'flood':
+                        this.ctx.fillStyle = `rgba(50, 100, 255, ${p.opacity})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        break;
+                    case 'wind':
+                        this.ctx.strokeStyle = `rgba(200, 200, 200, ${p.opacity})`;
+                        this.ctx.lineWidth = 2;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(p.x, p.y);
+                        this.ctx.lineTo(
+                            p.x + Math.cos(p.angle) * p.length,
+                            p.y + Math.sin(p.angle) * p.length
+                        );
+                        this.ctx.stroke();
+                        break;
+                    case 'earthquake':
+                        this.ctx.strokeStyle = `rgba(255, 100, 100, ${p.opacity})`;
+                        this.ctx.lineWidth = 3;
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        break;
+                }
+                
+                this.ctx.restore();
+            }
+
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Add new particles
+                if (this.particles.length < this.maxParticles) {
+                    const newParticle = this.createParticle();
+                    if (newParticle) {
+                        this.particles.push(newParticle);
+                    }
+                }
+
+                // Update and draw particles
+                this.particles = this.particles.filter(p => {
+                    const alive = this.updateParticle(p);
+                    if (alive) {
+                        this.drawParticle(p);
+                    }
+                    return alive;
+                });
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Initialize particle system
+        const canvas = document.getElementById('particleCanvas');
+        const particleSystem = new ParticleSystem(canvas, map);
+
+        // GeoJSON for affected areas
+        const affectedAreaStyle = {
+            color: '#ff3333',
+            fillColor: '#ff3333',
+            fillOpacity: 0.2,
+            weight: 3
+        };
+
+        let currentAffectedLayer = null;
+
+        // Scenario configurations
+        const scenarios = {
+            flashFlood: {
+                hazard: 'FLASH FLOOD',
+                severity: 'warning',
+                location: 'Downtown District & River Valley Areas',
+                action: 'Evacuate to Higher Ground Immediately',
+                buttonText: 'EVACUATE NOW',
+                certainty: 'Certainty: 85% | Lead Time: 45 minutes',
+                lowCertainty: false,
+                particleType: 'flood',
+                center: [5.6037, -0.1870],
+                zoom: 13,
+                geojson: {
+                    type: "FeatureCollection",
+                    features: [{
+                        type: "Feature",
+                        properties: { name: "Flood Zone" },
+                        geometry: {
+                            type: "Polygon",
+                            coordinates: [[
+                                [-0.2070, 5.6237],
+                                [-0.1670, 5.6237],
+                                [-0.1670, 5.5837],
+                                [-0.2070, 5.5837],
+                                [-0.2070, 5.6237]
+                            ]]
+                        }
+                    }]
+                }
+            },
+            hurricane: {
+                hazard: 'HURRICANE WATCH',
+                severity: 'watch',
+                location: 'Coastal Regions - All Zones',
+                action: 'Prepare Emergency Kit & Monitor Updates',
+                buttonText: 'VIEW PREPARATION GUIDE',
+                certainty: 'Certainty: 65% | Lead Time: 72 hours',
+                lowCertainty: true,
+                particleType: 'wind',
+                center: [5.5500, -0.2070],
+                zoom: 11,
+                geojson: {
+                    type: "FeatureCollection",
+                    features: [{
+                        type: "Feature",
+                        properties: { name: "Hurricane Watch Area" },
+                        geometry: {
+                            type: "Polygon",
+                            coordinates: [[
+                                [-0.3070, 5.7037],
+                                [-0.1070, 5.7037],
+                                [-0.1070, 5.4037],
+                                [-0.3070, 5.4037],
+                                [-0.3070, 5.7037]
+                            ]]
+                        }
+                    }]
+                }
+            },
+            earthquake: {
+                hazard: 'EARTHQUAKE',
+                severity: 'warning',
+                location: 'Metropolitan Area - All Zones',
+                action: 'Drop, Cover, and Hold On',
+                buttonText: 'TAKE COVER',
+                certainty: 'Certainty: 98% | Immediate',
+                lowCertainty: false,
+                particleType: 'earthquake',
+                center: [5.6037, -0.1870],
+                zoom: 12,
+                geojson: {
+                    type: "FeatureCollection",
+                    features: [{
+                        type: "Feature",
+                        properties: { name: "Epicenter", radius: 5 },
+                        geometry: {
+                            type: "Point",
+                            coordinates: [-0.1870, 5.6037]
+                        }
+                    }]
+                }
+            }
+        };
+
+        // Update display function
+        function updateDisplay(scenario) {
+            const data = scenarios[scenario];
+            const alertBox = document.getElementById('alertBox');
+            
+            // Update text content
+            document.getElementById('hazardType').textContent = data.hazard;
+            document.getElementById('locationInfo').textContent = data.location;
+            document.getElementById('actionInfo').textContent = data.action;
+            document.getElementById('actionButton').innerHTML = data.buttonText + '<div class="hold-progress" id="holdProgress"></div>';
+            document.getElementById('certaintyIndicator').textContent = data.certainty;
+            
+            const severityBadge = document.getElementById('severityBadge');
+            severityBadge.textContent = data.severity.toUpperCase();
+            severityBadge.className = 'severity-badge ' + data.severity;
+            
+            alertBox.className = 'alert-box ' + data.severity + (data.lowCertainty ? ' low-certainty' : '');
+            
+            const statusDot = document.querySelector('.status-dot');
+            statusDot.className = 'status-dot ' + data.severity;
+            
+            // Update timestamps
+            const now = new Date();
+            document.getElementById('issueTime').textContent = now.toLocaleString();
+            const validTime = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+            document.getElementById('validUntil').textContent = validTime.toLocaleString();
+
+            // Update map
+            map.setView(data.center, data.zoom);
+
+            // Remove old affected area
+            if (currentAffectedLayer) {
+                map.removeLayer(currentAffectedLayer);
+            }
+
+            // Add new affected area
+            currentAffectedLayer = L.geoJSON(data.geojson, {
+                style: affectedAreaStyle,
+                pointToLayer: (feature, latlng) => {
+                    return L.circle(latlng, {
+                        radius: (feature.properties.radius || 1) * 1000,
+                        ...affectedAreaStyle
+                    });
+                },
+                onEachFeature: (feature, layer) => {
+                    if (feature.properties && feature.properties.name) {
+                        layer.bindPopup(feature.properties.name);
+                    }
+                }
+            }).addTo(map);
+
+            // Update particle system
+            const bounds = currentAffectedLayer.getBounds();
+            particleSystem.setParticleType(data.particleType, bounds);
+        }
+
+        // Button interaction
+        let holdTimer = null;
+        let holdProgress = 0;
+
+        const actionButton = document.getElementById('actionButton');
+
+        function startHold(e) {
+            e.preventDefault();
+            const holdProgressBar = document.getElementById('holdProgress');
+            holdProgress = 0;
+            holdTimer = setInterval(() => {
+                holdProgress += 2;
+                holdProgressBar.style.width = holdProgress + '%';
+                if (holdProgress >= 100) {
+                    alert('Action Confirmed: Emergency Services Notified');
+                    cancelHold();
+                }
+            }, 30);
+        }
+
+        function cancelHold() {
+            if (holdTimer) {
+                clearInterval(holdTimer);
+                holdTimer = null;
+            }
+            setTimeout(() => {
+                const holdProgressBar = document.getElementById('holdProgress');
+                if (holdProgressBar) {
+                    holdProgress = 0;
+                    holdProgressBar.style.width = '0%';
+                }
+            }, 100);
+        }
+
+        actionButton.addEventListener('mousedown', startHold);
+        actionButton.addEventListener('mouseup', cancelHold);
+        actionButton.addEventListener('mouseleave', cancelHold);
+        actionButton.addEventListener('touchstart', startHold);
+        actionButton.addEventListener('touchend', cancelHold);
+
+        // Cycle through scenarios for demo
+        let currentScenario = 0;
+        const scenarioKeys = ['flashFlood', 'hurricane', 'earthquake'];
+        
+        setInterval(() => {
+            currentScenario = (currentScenario + 1) % scenarioKeys.length;
+            updateDisplay(scenarioKeys[currentScenario]);
+        }, 15000);
+
+        // Initialize with first scenario
+        updateDisplay(scenarioKeys[0]);
+    </script>
+</body>
+</html>
