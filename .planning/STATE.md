@@ -31,7 +31,7 @@ Milestone: 1 of N (National Emergency Nexus)
 Phases shipped: 1, 2, 3, 4, 6, 8, 9 (backend portion) — 7 of 10
 Phases remaining: 5 (Map UX), 7 (Globe + UI Polish), 9 (Playwright E2E — full coverage), 10 (Full E2E Acceptance)
 Status: Phase 4 fully verified autonomously (tests/e2e_smoke.py 20/20). Provider migration to Gemma 4 + Resend also shipped (commit 2070a2c).
-Last activity: 2026-05-09
+Last activity: 2026-06-05 - Completed quick task 260605-dzy: login/verification animated background
 
 Progress: [██████████] 100%
 
@@ -110,6 +110,12 @@ None yet. Capture ideas via `/gsd-add-todo` during execution.
 - **Phase 5 — district-level GeoJSON for Ghana** is not currently in `static/`; only admin-1 (regions) is present. Need to source admin-2 (districts).
 - **Phase 6 — requires `ANTHROPIC_API_KEY`**; graceful-degradation pattern means agent endpoint returns mock advisory when absent.
 - **Phase 8 — `/live_feed` namespace** referenced by `data_receiver.py` but never emitted to from `ghana_cap_app.py`. Phase 8 wires the public-feed feature to it.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260605-dzy | Add abstract animated background to login/verification pages | 2026-06-05 | bbcef86 | [260605-dzy-add-abstract-animated-background-to-logi](./quick/260605-dzy-add-abstract-animated-background-to-logi/) |
 
 ## Deferred Items
 
