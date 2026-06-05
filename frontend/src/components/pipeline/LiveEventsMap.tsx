@@ -162,8 +162,11 @@ export function LiveEventsMap({ alerts, open, onClose }: LiveEventsMapProps) {
         icon: L.divIcon({
           className: pinClass,
           html: `<div class="cap-target-pin__inner" style="--c:${color}"></div>`,
-          iconSize: extended ? [28, 28] : [22, 22],
-          iconAnchor: extended ? [14, 14] : [11, 11],
+          // Match the compact fixed-pixel dot in index.css (.cap-target-pin__inner:
+          // 12px, extended 16px). The geographic L.circle below is the radius cue;
+          // the pin is just a centre point, so it stays small at every zoom level.
+          iconSize: extended ? [16, 16] : [12, 12],
+          iconAnchor: extended ? [8, 8] : [6, 6],
         }),
       }).bindTooltip(
         `<strong>${alert.headline}</strong><br/>${EVENT_LABEL[eventType] ?? 'Alert'} · ${alert.severity}${extended ? ' · ⬆ EXTENDED' : ''}`,

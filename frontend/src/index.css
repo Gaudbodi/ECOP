@@ -107,35 +107,42 @@ body { margin: 0; min-height: 100vh; }
 .cap-live-events .leaflet-top,
 .cap-live-events .leaflet-bottom { z-index: auto !important; }
 
-/* ─── Map target pin ────────────────────────────────────────────────────── */
+/* ─── Map target pin ────────────────────────────────────────────────────────
+   The pin is a small, FIXED-pixel location dot — it marks the centre point.
+   The affected AREA is the geographic L.circle (radius in metres), which
+   scales with zoom. The pin is deliberately kept compact: an oversized
+   fixed-pixel halo reads as a (static) radius and, when the map is zoomed
+   out, visually covers a far larger area than the real alert — the bug this
+   sizing fixes. Keep the dot small so the scaling circle remains the radius
+   cue at every zoom level. */
 .cap-target-pin { position: relative; }
 .cap-target-pin__inner {
-  width: 22px; height: 22px; border-radius: 999px;
+  width: 12px; height: 12px; border-radius: 999px;
   background: var(--c, #ef4444);
-  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.3), 0 0 24px 6px var(--c, #ef4444);
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.35), 0 0 8px 1px var(--c, #ef4444);
   position: relative;
 }
 .cap-target-pin__inner::after {
-  content: ''; position: absolute; inset: -10px; border-radius: 999px;
-  border: 2px solid var(--c, #ef4444);
+  content: ''; position: absolute; inset: -4px; border-radius: 999px;
+  border: 1.5px solid var(--c, #ef4444);
   animation: capPulse 1.6s ease-out infinite;
 }
-/* Extended-alert pin: larger, faster pulse, secondary halo. */
+/* Extended-alert pin: slightly larger dot + faster pulse so a worsening
+   event still reads at a glance — but still a compact point, not a halo. */
 .cap-target-pin--extended .cap-target-pin__inner {
-  width: 28px; height: 28px;
+  width: 16px; height: 16px;
   box-shadow:
-    0 0 0 5px rgb(255 255 255 / 0.4),
-    0 0 36px 8px var(--c, #ef4444),
-    0 0 0 12px rgb(244 63 94 / 0.25);
+    0 0 0 2px rgb(255 255 255 / 0.45),
+    0 0 12px 2px var(--c, #ef4444);
 }
 .cap-target-pin--extended .cap-target-pin__inner::after {
-  inset: -14px;
-  border-width: 3px;
+  inset: -5px;
+  border-width: 2px;
   animation: capPulse 0.9s ease-out infinite;
 }
 @keyframes capPulse {
-  0%   { transform: scale(0.6); opacity: 0.9; }
-  100% { transform: scale(1.8); opacity: 0; }
+  0%   { transform: scale(0.7); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 /* Stroked outline on extended-alert circles. */
 .cap-extended { stroke-dasharray: 6 4; animation: capCircleDash 1.2s linear infinite; }
