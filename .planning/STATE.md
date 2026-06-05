@@ -111,6 +111,10 @@ None yet. Capture ideas via `/gsd-add-todo` during execution.
 - **Phase 6 — requires `ANTHROPIC_API_KEY`**; graceful-degradation pattern means agent endpoint returns mock advisory when absent.
 - **Phase 8 — `/live_feed` namespace** referenced by `data_receiver.py` but never emitted to from `ghana_cap_app.py`. Phase 8 wires the public-feed feature to it.
 
+### Roadmap Evolution
+
+- Phase 11 added (2026-06-05): Role-based workflow enforcement — generators create+view, validators validate+view, admins both (API + React UI gating, /api/v1/me)
+
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |

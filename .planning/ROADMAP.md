@@ -193,3 +193,13 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 8. Public Display Endpoint | 0/TBD | Not started | - |
 | 9. Tests + Visual Regression | 0/TBD | Not started | - |
 | 10. Full E2E Acceptance — PRD §6 + Overhaul Acceptance | 0/TBD | Not started | - |
+
+### Phase 11: Role-based workflow enforcement — generators create+view, validators validate+view, admins both (API + React UI gating, /api/v1/me)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 10
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 11 to break down)
