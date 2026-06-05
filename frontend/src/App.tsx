@@ -18,7 +18,7 @@ import type { TabId } from './components/layout/TabNav'
  *   └── Navbar (sticky, z-30)
  *   └── main (z-10) → AnimatePresence(mode="wait") → motion.div(key=tab)
  *       ├── tab='pipeline' → <Pipeline user={user} />
- *       ├── tab='manual'   → <ManualEntry />
+ *       ├── tab='manual'   → <ManualEntry user={user} />
  *       └── tab='settings' → <Settings user={user} />
  *
  * Phase 4 is feature-complete after Plan 04-04: all three tabs render
@@ -55,7 +55,7 @@ export default function App() {
               transition={{ duration: 0.18, ease: 'easeOut' }}
             >
               {tab === 'pipeline' && <Pipeline user={user} />}
-              {tab === 'manual' && <ManualEntry />}
+              {tab === 'manual' && <ManualEntry user={user} />}
               {tab === 'admin' && <AdminPanel currentUser={user} />}
               {tab === 'settings' && <Settings user={user} />}
             </motion.div>
