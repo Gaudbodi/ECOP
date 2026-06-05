@@ -34,6 +34,12 @@ export function AlertCard({ alert, userRole }: AlertCardProps) {
       aria-expanded={expanded}
       tabIndex={0}
       onKeyDown={(e) => {
+        // Only toggle when the card div itself is focused. Keydown events
+        // BUBBLE from descendants — including the lifecycle <dialog>s'
+        // textareas — so without this guard, typing a space/Enter into the
+        // Terminate reason collapses the card, unmounting LifecycleControls
+        // and tearing down the open dialog mid-flow.
+        if (e.target !== e.currentTarget) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           setExpanded((s) => !s)

@@ -44,57 +44,57 @@
             content: "";
             position: absolute;
             border-radius: 50%;
-            filter: blur(60px);
+            filter: blur(48px);
             will-change: transform, opacity;
         }
 
         /* Cyan blob, top-left drift */
         .login-bg::before {
-            width: 55vmax;
-            height: 55vmax;
-            top: -15vmax;
-            left: -10vmax;
-            background: radial-gradient(circle at center, rgba(56, 189, 248, 0.16) 0%, rgba(56, 189, 248, 0) 70%);
-            animation: blobDriftA 22s ease-in-out infinite alternate;
+            width: 48vmax;
+            height: 48vmax;
+            top: -12vmax;
+            left: -8vmax;
+            background: radial-gradient(circle at center, rgba(56, 189, 248, 0.42) 0%, rgba(56, 189, 248, 0) 68%);
+            animation: blobDriftA 16s ease-in-out infinite alternate;
         }
 
         /* Indigo blob, bottom-right drift */
         .login-bg::after {
-            width: 60vmax;
-            height: 60vmax;
-            bottom: -18vmax;
-            right: -12vmax;
-            background: radial-gradient(circle at center, rgba(129, 140, 248, 0.14) 0%, rgba(139, 92, 246, 0) 70%);
-            animation: blobDriftB 26s ease-in-out infinite alternate;
+            width: 52vmax;
+            height: 52vmax;
+            bottom: -14vmax;
+            right: -10vmax;
+            background: radial-gradient(circle at center, rgba(129, 140, 248, 0.38) 0%, rgba(139, 92, 246, 0) 68%);
+            animation: blobDriftB 19s ease-in-out infinite alternate;
         }
 
         /* A third, slower violet band for depth */
         .login-bg-extra {
             position: absolute;
-            top: 30%;
-            left: 35%;
-            width: 45vmax;
-            height: 45vmax;
+            top: 22%;
+            left: 30%;
+            width: 42vmax;
+            height: 42vmax;
             border-radius: 50%;
-            filter: blur(70px);
-            background: radial-gradient(circle at center, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0) 70%);
+            filter: blur(56px);
+            background: radial-gradient(circle at center, rgba(168, 85, 247, 0.30) 0%, rgba(139, 92, 246, 0) 68%);
             will-change: transform, opacity;
-            animation: blobDriftC 18s ease-in-out infinite alternate;
+            animation: blobDriftC 13s ease-in-out infinite alternate;
         }
 
         @keyframes blobDriftA {
-            0%   { transform: translate(0, 0) scale(1); opacity: 0.85; }
-            100% { transform: translate(8vmax, 6vmax) scale(1.18); opacity: 1; }
+            0%   { transform: translate(0, 0) scale(1); opacity: 0.65; }
+            100% { transform: translate(16vmax, 12vmax) scale(1.35); opacity: 1; }
         }
 
         @keyframes blobDriftB {
-            0%   { transform: translate(0, 0) scale(1.1); opacity: 0.9; }
-            100% { transform: translate(-7vmax, -5vmax) scale(0.92); opacity: 1; }
+            0%   { transform: translate(0, 0) scale(1.2); opacity: 0.7; }
+            100% { transform: translate(-15vmax, -11vmax) scale(0.85); opacity: 1; }
         }
 
         @keyframes blobDriftC {
-            0%   { transform: translate(-4vmax, 3vmax) scale(0.95); opacity: 0.7; }
-            100% { transform: translate(5vmax, -4vmax) scale(1.12); opacity: 1; }
+            0%   { transform: translate(-10vmax, 7vmax) scale(0.9); opacity: 0.55; }
+            100% { transform: translate(12vmax, -9vmax) scale(1.25); opacity: 1; }
         }
 
         @media (prefers-reduced-motion: reduce) {
