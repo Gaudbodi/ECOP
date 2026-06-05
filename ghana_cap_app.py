@@ -410,8 +410,14 @@ def manual_alert():
 @csrf.exempt  # JSON endpoint; Phase 4 frontend will move to token-in-header
 @login_required
 def validate_alert(identifier):
-    """Validator approves or rejects an alert"""
-    if session['user']['role'] not in ['cap validator', 'Admin']:
+    """Validator approves or rejects an alert.
+
+    Role matrix (CLAUDE.md four-place sync point #3): cap validator, Admin, and
+    Super Admin may validate. cap generator is denied 403 — they create, they
+    do not approve. Keep in sync with: manual_alert create gate (L394),
+    _LIFECYCLE_ROLES (L470), and the frontend ValidatorControls allowlist.
+    """
+    if session['user']['role'] not in ['cap validator', 'Admin', 'Super Admin']:
         return jsonify({"error": "Unauthorized"}), 403
         
     data = request.json

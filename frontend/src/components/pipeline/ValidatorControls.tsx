@@ -25,11 +25,13 @@ export function ValidatorControls({ alert, userRole }: ValidatorControlsProps) {
   const { approve, reject, submitting, error } = useValidation()
   const [rejectOpen, setRejectOpen] = useState(false)
 
-  // Gate matches ghana_cap_dashboard.html:437 verbatim. Computed AFTER hooks
-  // so a stage transition does not change the hook call count.
+  // Role matrix: cap validator, Admin, and Super Admin may approve/reject a
+  // pending (stage 1) alert. Mirrors the backend validate_alert allowlist
+  // (ghana_cap_app.py). Computed AFTER hooks so a stage transition does not
+  // change the hook call count.
+  const VALIDATE_ROLES: Role[] = ['cap validator', 'Admin', 'Super Admin']
   const canValidate =
-    (userRole === 'cap validator' || userRole === 'Admin') &&
-    alert.workflow_stage === 1
+    !!userRole && VALIDATE_ROLES.includes(userRole) && alert.workflow_stage === 1
   if (!canValidate) return null
 
   return (

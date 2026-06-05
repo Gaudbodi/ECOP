@@ -401,3 +401,24 @@ def test_terminate_alert_denies_generator(app):
         r = c.post("/api/v1/alerts/NONEXISTENT-ID/terminate", json={"reason": "test"})
     assert r.status_code == 403
     assert r.get_json() == {"error": "Unauthorized"}
+
+
+def test_validate_alert_allows_super_admin(app):
+    """Role matrix: Super Admin may validate (approve/reject) pending alerts —
+    'Admins/Super Admins can do both'. A Super Admin must pass the role gate;
+    proven by getting the 404 not-found (gate passed) rather than 403 Unauthorized.
+    Locks the gate against the regression where Super Admin was omitted from the
+    validate allowlist while present in _LIFECYCLE_ROLES."""
+    with app.test_client() as c:
+        with c.session_transaction() as s:
+            s["user"] = {
+                "staff_id": "E004",
+                "name": "Francis Yiryel",
+                "agency": "NCA",
+                "role": "Super Admin",
+                "email": "francisyiryel@gmail.com",
+            }
+        r = c.post("/api/v1/alerts/validate/NONEXISTENT-ID", json={"action": "approve"})
+    # Gate passed (not 403); the alert genuinely does not exist → 404.
+    assert r.status_code == 404
+    assert r.get_json() == {"error": "Alert not found"}
