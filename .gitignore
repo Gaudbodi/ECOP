@@ -7,3 +7,25 @@ __pycache__/
 *.pdf
 node_modules/
 .DS_Store
+
+# Phase 4 frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# E2E smoke artifacts (regenerated on each run)
+flask_e2e.log
+tests/_e2e_screenshots/
+
+# Local Claude Code tooling config (not app state)
+.claude/
+
+# Generated TTS audio — runtime artifact; the Dockerfile creates the dir
+static/audio/
+
+# Local-only files, not part of the deployable app (some contain credentials)
+PRD.txt
+compass-connections.json
+miscellaneous scripts/
+app[[]DEPRECATED].py
+*.jpg

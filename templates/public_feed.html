@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghana CAP | Public Display</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --bg: #020617;
+            --glass: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.12);
+            --accent: #0ea5e9;
+            --accent-2: #8b5cf6;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background:
+                radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.10) 0px, transparent 60%),
+                var(--bg);
+            color: var(--text);
+        }
+        .screen {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
+            padding: 2.5rem 3rem;
+            gap: 1.5rem;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .brand {
+            font-weight: 800;
+            font-size: 1.25rem;
+            letter-spacing: 0.02em;
+            background: linear-gradient(to right, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .clock {
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ef4444;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .live-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            box-shadow: 0 0 12px #ef4444;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        main {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 1.5rem;
+            min-height: 0;
+        }
+        .alert-card, .map-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .alert-card {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .severity-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .severity-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .sev-extreme { background: #b91c1c; }
+        .sev-severe  { background: #ea580c; }
+        .sev-moderate { background: #ca8a04; }
+        .sev-minor   { background: #16a34a; }
+        .sev-default { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+        .urgency {
+            color: var(--muted);
+            font-size: 0.875rem;
+        }
+        .headline {
+            margin: 0;
+            font-size: clamp(2rem, 4.5vw, 3.75rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.01em;
+        }
+        .description {
+            color: var(--muted);
+            font-size: 1.1rem;
+            line-height: 1.5;
+            max-height: 30vh;
+            overflow-y: auto;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        .meta-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.25rem;
+        }
+        .meta-value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .audio-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        .audio-row audio {
+            width: 100%;
+            filter: invert(1) hue-rotate(180deg);
+        }
+        .lang-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .lang-tab {
+            padding: 0.4rem 0.85rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            transition: all 0.2s;
+        }
+        .lang-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+        #map {
+            width: 100%; height: 100%;
+            border-radius: 0.75rem;
+            min-height: 320px;
+            filter: hue-rotate(180deg) brightness(0.9);
+        }
+        .map-card { display: flex; flex-direction: column; padding: 1rem; }
+        .map-card h3 {
+            margin: 0 0 0.75rem 0;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            padding: 0 1rem;
+        }
+        footer {
+            display: flex;
+            justify-content: space-between;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+        .empty {
+            display: grid;
+            place-items: center;
+            text-align: center;
+            color: var(--muted);
+            padding: 3rem;
+        }
+        .empty h2 { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+    </style>
+</head>
+<body>
+    <div class="screen">
+        <header>
+            <div class="brand">GHANA CAP — PUBLIC FEED</div>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <span class="live-badge"><span class="live-dot"></span> Live</span>
+                <span class="clock" id="clock"></span>
+            </div>
+        </header>
+
+        <main id="alert-pane">
+            {% if alert %}
+            <section class="alert-card" id="alert-card">
+                <div class="severity-row">
+                    <span class="severity-badge sev-default" id="sev-badge">{{ alert.severity }}</span>
+                    <span class="urgency">{{ alert.urgency }} · {{ alert.certainty }}</span>
+                </div>
+                <h1 class="headline" id="headline">{{ alert.headline }}</h1>
+                <p class="description" id="description">{{ alert.description }}</p>
+                <div class="meta-grid">
+                    <div>
+                        <div class="meta-label">Affected</div>
+                        <div class="meta-value" id="affected">{{ alert.affected_regions | join(', ') }}</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Event</div>
+                        <div class="meta-value" id="event">{{ alert.event }}</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Sender</div>
+                        <div class="meta-value" id="sender">{{ alert.sender_agency }}</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Sent</div>
+                        <div class="meta-value" id="sent">{{ alert.sent }}</div>
+                    </div>
+                </div>
+                <div class="audio-row">
+                    <div class="lang-tabs" id="lang-tabs"></div>
+                    <audio id="audio-player" controls preload="auto" autoplay></audio>
+                </div>
+            </section>
+            <section class="map-card">
+                <h3>Affected Area</h3>
+                <div id="map"></div>
+            </section>
+            {% else %}
+            <section class="alert-card empty">
+                <h2>Awaiting alerts…</h2>
+                <p>This screen updates in real time when an alert is dispatched.</p>
+            </section>
+            <section class="map-card empty">
+                <p>Map will appear when an alert is received.</p>
+            </section>
+            {% endif %}
+        </main>
+
+        <footer>
+            <span>Source: National Communications Authority + Ghana Meteorological Agency</span>
+            <span id="last-update">{% if alert %}Last update: {{ alert.sent }}{% endif %}</span>
+        </footer>
+    </div>
+
+    <script>
+        const initialAlert = {{ alert | tojson if alert else 'null' }};
+        let currentAlert = initialAlert;
+        let map = null;
+        let alertMarker = null;
+
+        // ────────── Clock ──────────
+        function tickClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleString('en-GB', {
+                timeZone: 'Africa/Accra',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                day: '2-digit', month: 'short',
+            });
+        }
+        tickClock();
+        setInterval(tickClock, 1000);
+
+        // ────────── Severity colour ──────────
+        function severityClass(sev) {
+            const s = (sev || '').toLowerCase();
+            if (s.includes('extreme')) return 'severity-badge sev-extreme';
+            if (s.includes('severe'))  return 'severity-badge sev-severe';
+            if (s.includes('moderate'))return 'severity-badge sev-moderate';
+            if (s.includes('minor'))   return 'severity-badge sev-minor';
+            return 'severity-badge sev-default';
+        }
+
+        // ────────── Audio language tabs ──────────
+        function renderLangTabs(audioLinks) {
+            const tabs = document.getElementById('lang-tabs');
+            const audio = document.getElementById('audio-player');
+            tabs.innerHTML = '';
+            const langs = Object.keys(audioLinks || {});
+            if (langs.length === 0) {
+                tabs.innerHTML = '<span style="color: var(--muted); font-size: 0.8rem;">No audio</span>';
+                audio.removeAttribute('src');
+                return;
+            }
+            const preferred = langs.find(l => l.toLowerCase() === 'english') || langs[0];
+            langs.forEach(lang => {
+                const btn = document.createElement('button');
+                btn.className = 'lang-tab' + (lang === preferred ? ' active' : '');
+                btn.textContent = lang;
+                btn.onclick = () => {
+                    document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+                    btn.classList.add('active');
+                    audio.src = audioLinks[lang];
+                    audio.play().catch(() => {});
+                };
+                tabs.appendChild(btn);
+            });
+            audio.src = audioLinks[preferred];
+        }
+
+        // ────────── Map ──────────
+        function ensureMap() {
+            if (map) return;
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([7.9465, -1.0232], 6);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        }
+        function updateMap(alert) {
+            ensureMap();
+            const lat = alert.geo?.lat ?? alert.latitude ?? 7.9465;
+            const lon = alert.geo?.lon ?? alert.longitude ?? -1.0232;
+            if (alertMarker) alertMarker.remove();
+            alertMarker = L.circleMarker([lat, lon], {
+                radius: 16, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.4, weight: 2,
+            }).addTo(map);
+            map.flyTo([lat, lon], 11, { duration: 1.5 });
+        }
+
+        // ────────── Render an alert ──────────
+        function renderAlert(alert) {
+            currentAlert = alert;
+            const pane = document.getElementById('alert-pane');
+            // If we currently show the empty state, replace the inner HTML so the
+            // alert card and map card slots exist.
+            if (!document.getElementById('alert-card')) {
+                pane.innerHTML = `
+                    <section class="alert-card" id="alert-card">
+                        <div class="severity-row">
+                            <span class="severity-badge sev-default" id="sev-badge"></span>
+                            <span class="urgency" id="urgency"></span>
+                        </div>
+                        <h1 class="headline" id="headline"></h1>
+                        <p class="description" id="description"></p>
+                        <div class="meta-grid">
+                            <div><div class="meta-label">Affected</div><div class="meta-value" id="affected"></div></div>
+                            <div><div class="meta-label">Event</div><div class="meta-value" id="event"></div></div>
+                            <div><div class="meta-label">Sender</div><div class="meta-value" id="sender"></div></div>
+                            <div><div class="meta-label">Sent</div><div class="meta-value" id="sent"></div></div>
+                        </div>
+                        <div class="audio-row">
+                            <div class="lang-tabs" id="lang-tabs"></div>
+                            <audio id="audio-player" controls preload="auto" autoplay></audio>
+                        </div>
+                    </section>
+                    <section class="map-card">
+                        <h3>Affected Area</h3>
+                        <div id="map"></div>
+                    </section>`;
+            }
+            const sev = document.getElementById('sev-badge');
+            sev.className = severityClass(alert.severity);
+            sev.textContent = alert.severity || 'Alert';
+            document.getElementById('urgency')?.replaceChildren(document.createTextNode(`${alert.urgency || ''} · ${alert.certainty || ''}`));
+            document.getElementById('headline').textContent = alert.headline || 'Emergency Alert';
+            document.getElementById('description').textContent = alert.description || '';
+            document.getElementById('affected').textContent = (alert.affected_regions || []).join(', ') || alert.affected_region || '';
+            document.getElementById('event').textContent = alert.event || '';
+            document.getElementById('sender').textContent = alert.sender_agency || '';
+            document.getElementById('sent').textContent = alert.sent || '';
+            renderLangTabs(alert.audio_links || {});
+            updateMap(alert);
+            document.getElementById('last-update').textContent = `Last update: ${alert.sent || new Date().toISOString()}`;
+        }
+
+        if (initialAlert) {
+            renderAlert(initialAlert);
+        }
+
+        // ────────── Socket.IO ──────────
+        const socket = io('/live_feed');
+        socket.on('connect', () => console.log('public feed connected'));
+        socket.on('alert', (alert) => {
+            console.log('public feed alert received', alert);
+            renderAlert(alert);
+        });
+    </script>
+</body>
+</html>

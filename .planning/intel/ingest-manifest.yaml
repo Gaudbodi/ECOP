@@ -1,0 +1,7 @@
+docs:
+  - path: "Requirements Document for Unified Emergency Communication Platform.pdf"
+    type: SPEC
+  - path: "PRD.txt"
+    type: PRD
+  - path: "CLAUDE.md"
+    type: DOC

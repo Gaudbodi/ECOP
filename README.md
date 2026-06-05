@@ -128,3 +128,110 @@ AI_SERVICE=openai
 - OpenAI for AI summarization (optional)
 - ScrapeGraphAI for enhanced scraping
 - Three.js for 3D visualization
+
+---
+
+# Ghana National CAP Platform (Current)
+
+The sections above describe the original prototype. The active codebase is now
+the Ghana National CAP Platform — a Flask + Socket.IO backend plus a React +
+Vite SPA. The current entry point is `ghana_cap_app.py` (the old `app.py` has
+been deleted). For the live, supported workflow, follow the sections below.
+
+Flask + Socket.IO backend + React + Vite SPA. Ingests weather / emergency
+alerts (GMeT webhook or manual entry), enriches them (geo, translation,
+TTS), routes them through generator → validator → dispatch, and broadcasts
+to MNO + SMS + public TV display.
+
+## Prerequisites
+
+- Python 3.13+
+- Node.js 22+, npm 10+
+- MongoDB (Atlas URI in `.env`, or local — see `db.py`)
+- Optional: OpenAI / Twilio / Africa's Talking / Anthropic credentials
+  (the app degrades gracefully without them)
+
+## Quickstart (Production)
+
+```bash
+# 1. Install backend deps
+pip install -r requirements.txt
+
+# 2. Build the React frontend
+cd frontend
+npm install
+npm run build
+cd ..
+
+# 3. Boot Flask (serves React shell at /, Jinja login at /login,
+#    Jinja public TV at /public/feed/display)
+python ghana_cap_app.py
+# Or for production: gunicorn --worker-class eventlet -w 1 ghana_cap_app:app
+```
+
+Open <http://localhost:5000/login>. Seed users (created on every
+startup):
+
+| Email | Role | Agency |
+| --- | --- | --- |
+| francis@example.com | Admin | NCA |
+| generator@example.com | cap generator | GMeT |
+| validator@example.com | cap validator | GMeT |
+| nadmo_gen@example.com | cap generator | NADMO |
+
+Login is email + 6-digit code. Without `SMTP_USERNAME` set, the code
+prints to Flask stdout — read it from the server log during dev.
+
+## Hybrid Dev Workflow (Phase 4)
+
+Two terminals — Flask backend on `:5000`, Vite dev server with HMR
+on `:5173`:
+
+```bash
+# Terminal 1: Flask
+python ghana_cap_app.py
+
+# Terminal 2: Vite (HMR + fast refresh)
+cd frontend
+npm install
+npm run dev
+```
+
+Open <http://localhost:5173>. The Vite dev server proxies `/api/*`,
+`/socket.io/*`, and `/static/*` to Flask `:5000`. React + Tailwind
+hot-reload on save; Flask reloads on Python changes.
+
+Login at `http://localhost:5173/login` redirects through the proxy and
+sets the session cookie on the same origin so the SPA can authenticate.
+
+## Frontend (Phase 4)
+
+The `frontend/` directory holds a Vite 6 + React 19 + TypeScript 5.9 +
+Tailwind 4.3 + Motion 12.38 SPA. `npm run build` writes hashed assets to
+`frontend/dist/`, which Flask serves at `/` (the dashboard) and `/assets/*`
+(the bundled JS/CSS). The legacy Jinja `templates/ghana_cap_dashboard.html`
+was retired in Phase 4; `templates/login.html` and
+`templates/public_feed.html` remain Jinja-rendered.
+
+## Tests
+
+Backend tests run via pytest:
+
+```bash
+pytest tests/ -q
+```
+
+Phase 9 will add Vitest (component) + Playwright (E2E) test runners.
+
+## Architecture
+
+See `.planning/` for full phase plans:
+
+- `.planning/PROJECT.md` — constraints + key decisions
+- `.planning/ROADMAP.md` — 10-phase milestone plan
+- `.planning/REQUIREMENTS.md` — REQ-* tracking
+- `.planning/phases/04-frontend-migration-to-react-vite-typescript-tailwind-framer-/` —
+  Phase 4 plans + research + patterns
+
+Project conventions live in `CLAUDE.md` (active) and `GEMINI.md` (legacy
+notes). New contributors should read `CLAUDE.md` first.

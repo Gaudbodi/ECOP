@@ -1,0 +1,29 @@
+{
+  "source_path": "C:/Users/franc/OneDrive/Documents/Mark2.5/EMERGENCY/Requirements Document for Unified Emergency Communication Platform.pdf",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Requirements Document for Unified Emergency Communication Platform (E-CoP)",
+  "summary": "Master requirements specification for the Unified Emergency Communication Platform (E-CoP) covering functional, non-functional, operational, and data requirements across multi-channel emergency alerting in Ghana.",
+  "scope": [
+    "Unified Emergency Communication Platform (E-CoP)",
+    "Common Alerting Protocol (CAP)",
+    "Multi-channel alert dissemination (SMS, cell broadcast, TV/radio override, social media, digital signage)",
+    "HF/VHF legacy radio integration",
+    "Satellite and offline modes (VSAT, LEO)",
+    "IoT sensors and AI/analytics-driven triggers",
+    "Multi-agency first responder coordination portal",
+    "Geo-targeted alerts",
+    "Role-based access control and validation workflow",
+    "Multi-lingual TTS and accessibility (sign-language overlays, screen-reader)",
+    "Reporting, dashboards, and after-action reports",
+    "Stakeholders: Government Agencies (MoCD, NADMO), Emergency Services, TNIO (telecom operators/ISPs), NGOs, International Partners, General Public"
+  ],
+  "cross_refs": [
+    "National Emergency Telecommunications Plan (NETP)",
+    "National Emergency Telecommunications Coordination Committee (NETCC)"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": "Manifest-declared SPEC honored as authoritative. Content strongly supports SPEC classification: 22 functional requirements (FR1.1-FR13.2), 15 non-functional requirements (NFR1-NFR15), explicit performance SLOs (1-minute broadcast, 99.9% availability, 1000 concurrent users, millions of SMS/min), interoperability constraint (CAP protocol), data schema requirements, and acceptance criteria. Document Ref No: RQ_DOC_0. Acts as the master spec for the broader E-CoP, of which the Ghana National CAP Platform (ghana_cap_app.py) is a component implementation."
+}

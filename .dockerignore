@@ -1,6 +1,49 @@
+# Python build artifacts
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.venv
+.venv/
+*.egg-info/
+
+# Editor / OS
 .DS_Store
+.idea/
+.vscode/
+
+# VCS
+.git/
+.gitignore
+
+# Secrets — never bake into the image
+.env
+.env.*
+!.env.example
+
+# Planning + intel — not needed at runtime
+.planning/
+
+# Generated audio (alerts) — let the running container generate these fresh
+static/audio/
+
+# Large binaries / archives that shouldn't ship in the image
+*.zip
+*.pdf
+*.png
+*.jpg
+*.jpeg
+!static/glass.png
+
+# Test artifacts (when present)
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Legacy / reference (do not deploy)
+app[DEPRECATED].py
+"miscellaneous scripts/"
+"Requirements Document for Unified Emergency Communication Platform.pdf"

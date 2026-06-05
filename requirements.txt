@@ -2,23 +2,50 @@
 Flask==3.0.0
 Flask-SocketIO==5.3.6
 
+# Security: rate limiting + CSRF (Phase 2)
+Flask-Limiter>=3.5.0
+Flask-WTF>=1.2.0
+
+# Configuration
+python-dotenv>=1.0.0
+
 # HTTP Requests and Web Scraping
 requests==2.31.0
 beautifulsoup4>=4.12.3
 urllib3>=1.26.0
 
-# AI and Text Processing
+# AI: OpenAI (translation + TTS) and Google Gemma 4 via Gemini API (advisory agent — Phase 6)
 openai==1.82.0
+google-genai>=0.3.0
+
+# Transactional email (OTP delivery — replaces SMTP)
+resend>=2.0.0
 
 # Data Processing and Analysis
 pandas>=1.5.0
+pymongo[srv]
+shapely
 
-# XML Processing (built-in xml.etree.ElementTree is used, but lxml provides additional features)
+# SMS / 2FA
+twilio
+africastalking>=1.2.7
+
+# Postgres analytics (external schema in earlywarningdb.sql)
+psycopg2-binary>=2.9.9
+
+# XML Processing (built-in xml.etree.ElementTree is used; lxml provides extras)
 lxml>=4.9.0
 
 # Production Server Support
-gunicorn>=20.1.0
-eventlet>=0.33.0
+# Pin gunicorn to 23.0.0: it ships the `eventlet` worker class Flask-SocketIO
+# needs. gunicorn 24+ dropped the bundled eventlet/gevent workers (eventlet is
+# deprecated upstream), so `-k eventlet` fails to load on newer majors.
+gunicorn==23.0.0
+eventlet>=0.33.0,<0.41
+
+# Testing (Phase 9)
+pytest>=8.0.0
+pytest-flask>=1.3.0
 
 # Note: The following modules are built-in to Python and don't need installation:
-# uuid, logging, datetime, json, os, re, platform, typing, xml.etree.ElementTree
+# uuid, secrets, logging, datetime, json, os, re, platform, typing, xml.etree.ElementTree

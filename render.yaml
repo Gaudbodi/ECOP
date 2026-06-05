@@ -1,0 +1,65 @@
+# Render Blueprint — Ghana National CAP Platform
+#
+# A single Docker web service: the Flask + Socket.IO backend that also serves
+# the built React SPA (frontend talks to the backend same-origin, so no split
+# origin is needed).
+#
+# To deploy: Render Dashboard → New → Blueprint → connect the Gaudbodi/ECOP
+# repo. Render reads this file and provisions the service. Then fill in the
+# secret env vars marked `sync: false` (they are intentionally NOT committed).
+#
+# Note: RENDER_EXTERNAL_URL is auto-injected by Render at runtime — the app
+# uses it to trust the live origin for Socket.IO CORS and to close the MNO
+# self-dispatch loop. No manual ALLOWED_ORIGINS / MNO_WEBHOOK_URL needed.
+services:
+  - type: web
+    name: ghana-cap-platform
+    runtime: docker
+    plan: starter            # starter+ stays always-on (free tier sleeps, which drops Socket.IO)
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /login
+    autoDeploy: true
+    envVars:
+      # ── Build-time: baked into the SPA bundle (publishable pk.* token) ──
+      - key: VITE_MAPBOX_TOKEN
+        sync: false
+
+      # ── Runtime: app config ──
+      - key: FLASK_ENV
+        value: production          # enables Secure session cookies
+      - key: FLASK_SECRET_KEY
+        generateValue: true        # Render generates a strong random secret
+
+      # ── Runtime: secrets — set these in the Render dashboard ──
+      - key: MONGO_URI
+        sync: false
+      - key: DB_NAME
+        value: fsrp_aggregator
+      - key: GMET_WEBHOOK_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemma-4-26b-a4b-it
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: Ghana CAP Platform <onboarding@resend.dev>
+
+      # ── Optional: real SMS dispatch (left unset = mocked/logged) ──
+      - key: AFRICASTALKING_USERNAME
+        sync: false
+      - key: AFRICASTALKING_API_KEY
+        sync: false
+      - key: AFRICASTALKING_FROM
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false

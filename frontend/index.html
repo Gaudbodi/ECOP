@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ghana CAP Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet" />
+    <script>
+      // No-flash theme bootstrap (port of ghana_cap_dashboard.html:543).
+      // Runs before React mounts so the painted shell matches saved theme.
+      (function () {
+        var t = (typeof localStorage !== 'undefined' && localStorage.getItem('theme') === 'light') ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+        document.body && document.body.setAttribute('data-theme', t);
+        document.addEventListener('DOMContentLoaded', function () {
+          document.body.setAttribute('data-theme', t);
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

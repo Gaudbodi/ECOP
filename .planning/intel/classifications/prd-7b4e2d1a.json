@@ -1,0 +1,31 @@
+{
+  "source_path": "C:\\Users\\franc\\OneDrive\\Documents\\Mark2.5\\EMERGENCY\\PRD.txt",
+  "type": "PRD",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Product Requirements Document (PRD): Ghana CAP Platform E2E Test",
+  "summary": "PRD for the Ghana National CAP Platform GMeT E2E PoC defining ingress, enrichment, dispatch workflow, functional requirements, UI/UX, tech stack, and acceptance criteria.",
+  "scope": [
+    "Ghana National CAP Platform",
+    "GMeT webhook receiver",
+    "CAP v1.2 payload processing",
+    "Geo-spatial resolution (regions/districts)",
+    "Translation engine (English, Twi, Hausa)",
+    "Text-to-Speech (TTS) conversion",
+    "MNO webhook dispatcher",
+    "SMS API integration (Africa's Talking / Twilio)",
+    "Admin Dashboard (Active Alerts, Webhook Config, Test Dispatcher)",
+    "Glassmorphism UI design language",
+    "Flask backend",
+    "MongoDB persistence"
+  ],
+  "cross_refs": [
+    "gemini cli",
+    "static/ghana_regions.json",
+    "CLAUDE.md",
+    "ghana_cap_app.py"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}
