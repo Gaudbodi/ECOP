@@ -25,20 +25,30 @@ export function TerminateDialog({
 }: TerminateDialogProps) {
   const [reason, setReason] = useState('')
   const ref = useRef<HTMLDialogElement>(null)
+  const wasOpen = useRef(false)
 
   useEffect(() => {
     if (!ref.current) return
     if (open) {
       if (!ref.current.open) ref.current.showModal()
-      setReason('')
+      // Reset the typed reason ONLY on the closed→open edge — never on a
+      // benign re-render while the dialog is already open. This keeps a
+      // half-typed CAP Cancel reason intact when background socket traffic
+      // re-renders the surrounding tree.
+      if (!wasOpen.current) setReason('')
     } else if (ref.current.open) {
       ref.current.close()
     }
+    wasOpen.current = open
   }, [open])
 
   return (
     <dialog
       ref={ref}
+      // Close path is EXPLICIT user intent only: the native cancel/Esc event
+      // (preventDefault → onCancel), the Cancel button (onCancel), and a
+      // successful submit (onSubmit). No outside-click / blur / focus-loss
+      // close handler exists, so transient re-renders never drop the dialog.
       onCancel={(e) => {
         e.preventDefault()
         onCancel()
@@ -120,22 +130,36 @@ export function ExtendDialog({
   const [severity, setSeverity] = useState<Severity>(currentSeverity)
   const [appended, setAppended] = useState('')
   const ref = useRef<HTMLDialogElement>(null)
+  const wasOpen = useRef(false)
+  const currentSeverityRef = useRef(currentSeverity)
+  currentSeverityRef.current = currentSeverity
 
   useEffect(() => {
     if (!ref.current) return
     if (open) {
       if (!ref.current.open) ref.current.showModal()
-      setReason('')
-      setSeverity(currentSeverity)
-      setAppended('')
+      // Reset form state ONLY on the closed→open edge. `currentSeverity` is
+      // read from a ref here (not the effect deps) so a background re-render
+      // that swaps the alert object's severity prop while the dialog is open
+      // does NOT wipe the in-progress reason / severity choice / appended note.
+      if (!wasOpen.current) {
+        setReason('')
+        setSeverity(currentSeverityRef.current)
+        setAppended('')
+      }
     } else if (ref.current.open) {
       ref.current.close()
     }
-  }, [open, currentSeverity])
+    wasOpen.current = open
+  }, [open])
 
   return (
     <dialog
       ref={ref}
+      // Close path is EXPLICIT user intent only: the native cancel/Esc event
+      // (preventDefault → onCancel), the Cancel button (onCancel), and a
+      // successful submit (onSubmit). No outside-click / blur / focus-loss
+      // close handler exists, so transient re-renders never drop the dialog.
       onCancel={(e) => {
         e.preventDefault()
         onCancel()
