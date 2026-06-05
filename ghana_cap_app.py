@@ -387,18 +387,23 @@ def gmet_webhook():
 def manual_alert():
     """Manual CAP generation from form"""
     data = request.json
+    # Four-place role/stage matrix sync point #1 (CLAUDE.md): only cap generator,
+    # Admin, and Super Admin may create alerts. cap validator is denied 403 here.
+    # Keep in sync with: validate_alert allowlist (L409), _LIFECYCLE_ROLES (L465),
+    # and process_alert_logic dispatch gate (workflow_stage == 3).
+    if session['user'].get('role') not in ('cap generator', 'Admin', 'Super Admin'):
+        return jsonify({"error": "Unauthorized"}), 403
     sender_info = {
         "staff_id": session['user']['staff_id'],
         "name": session['user']['name'],
         "agency": session['user']['agency'],
         "role": session['user']['role']
     }
-    
-    # If the user is a generator, the alert starts as 'Pending Validation' (Stage 1)
-    # If the user is an admin or validator (if they can create too), it might skip?
-    # Usually, generators create, validators validate.
+
+    # Generators submit for validation (stage 1); Admin/Super Admin direct-dispatch (stage 3).
+    # The else branch only ever sees Admin/Super Admin once validators are blocked above.
     workflow_stage = 1 if sender_info['role'] == 'cap generator' else 3
-    
+
     return process_alert_logic(data, sender_info=sender_info, client_ip=request.remote_addr, workflow_stage=workflow_stage)
 
 @app.route('/api/v1/alerts/validate/<identifier>', methods=['POST'])
