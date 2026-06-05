@@ -81,6 +81,12 @@ export interface AreaResolveResponse {
   label: string
   event_type: string
   geocoder: string
+  /**
+   * True when the exact place could not be geocoded and the server fell back
+   * to a region centroid (or the national centroid). The point is approximate
+   * — the operator should verify/adjust the location and radius on the map.
+   */
+  approximate?: boolean
 }
 
 export interface LifecycleResponse {

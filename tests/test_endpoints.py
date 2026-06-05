@@ -104,6 +104,55 @@ def test_agents_draft_rejects_empty_input(auth_client):
     assert r.status_code == 400
 
 
+def test_agents_area_resolves_static_place(auth_client):
+    """/api/v1/agents/area resolves a known static place exactly (no Nominatim
+    needed) and returns a precise, non-approximate point."""
+    r = auth_client.post("/api/v1/agents/area", json={"location": "Dzorwulu"})
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["approximate"] is False
+    assert body["region"] == "Greater Accra"
+    assert abs(body["lat"] - 5.6126) < 0.05
+
+
+def test_agents_area_degrades_gracefully_when_geocode_fails(auth_client, monkeypatch):
+    """When the exact place can't be geocoded (e.g. Nominatim blocked from a
+    cloud egress IP), the endpoint must NOT 404. It falls back to a region
+    centroid when a region is detectable, returning 200 + approximate=true so
+    the operator can still proceed and adjust on the map. Regression for the
+    'resolving CAP location raises 404' report."""
+    import services.advisory_agent_service as agent_svc
+
+    # Simulate Nominatim being unavailable: geocode always errors.
+    monkeypatch.setattr(
+        agent_svc,
+        "_tool_geocode_ghana_location",
+        lambda text: {"source": "nominatim", "input": text, "error": "lookup_failed"},
+    )
+
+    # Region detectable from the text → region centroid fallback.
+    r = auth_client.post(
+        "/api/v1/agents/area",
+        json={"location": "an unmapped hamlet in the Eastern Region"},
+    )
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["approximate"] is True
+    assert body["region"] == "Eastern"
+    assert body["geocoder"] == "fallback-region"
+    assert body["lat"] is not None and body["lon"] is not None
+
+    # No region detectable → national centroid fallback, still 200 (never 404).
+    r2 = auth_client.post(
+        "/api/v1/agents/area",
+        json={"location": "totally-unknown-place-zzz"},
+    )
+    assert r2.status_code == 200
+    body2 = r2.get_json()
+    assert body2["approximate"] is True
+    assert body2["geocoder"] == "fallback-national"
+
+
 # ─────────────────────── /public/feed/* (Phase 8) ───────────────────────
 
 

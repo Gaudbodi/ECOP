@@ -91,6 +91,26 @@ PLACES: dict[str, dict] = {
     "adum":             {"lat": 6.6928, "lng": -1.6244, "region": "Ashanti", "district": "Kumasi Metropolitan", "type": "neighborhood"},
     "ahodwo":           {"lat": 6.6738, "lng": -1.6364, "region": "Ashanti", "district": "Kumasi Metropolitan", "type": "neighborhood"},
     "asokwa":           {"lat": 6.6710, "lng": -1.6000, "region": "Ashanti", "district": "Asokwa Municipal", "type": "neighborhood"},
+
+    # Additional Greater Accra neighbourhoods/towns — common alert locations
+    # that previously fell through to Nominatim (which is blocked from cloud
+    # egress IPs, e.g. Render), causing the geocode to 404. Static-first keeps
+    # the area resolver working without an external call.
+    "dzorwulu":         {"lat": 5.6126, "lng": -0.1969, "region": "Greater Accra", "district": "Ayawaso West Municipal", "type": "neighborhood"},
+    "airport residential": {"lat": 5.6052, "lng": -0.1769, "region": "Greater Accra", "district": "Ayawaso West Municipal", "type": "neighborhood"},
+    "ridge":            {"lat": 5.5650, "lng": -0.1960, "region": "Greater Accra", "district": "Accra Metropolitan", "type": "neighborhood"},
+    "abelemkpe":        {"lat": 5.6010, "lng": -0.2110, "region": "Greater Accra", "district": "Ayawaso West Municipal", "type": "neighborhood"},
+    "roman ridge":      {"lat": 5.5960, "lng": -0.2010, "region": "Greater Accra", "district": "Ayawaso West Municipal", "type": "neighborhood"},
+    "kaneshie":         {"lat": 5.5640, "lng": -0.2330, "region": "Greater Accra", "district": "Accra Metropolitan", "type": "neighborhood"},
+    "abeka":            {"lat": 5.5950, "lng": -0.2370, "region": "Greater Accra", "district": "Okaikwei North Municipal", "type": "neighborhood"},
+    "dome":             {"lat": 5.6520, "lng": -0.2280, "region": "Greater Accra", "district": "Ga East Municipal", "type": "neighborhood"},
+    "kwabenya":         {"lat": 5.6900, "lng": -0.2200, "region": "Greater Accra", "district": "Ga East Municipal", "type": "neighborhood"},
+    "ashaiman":         {"lat": 5.6890, "lng": -0.0330, "region": "Greater Accra", "district": "Ashaiman Municipal", "type": "town"},
+    "teshie":           {"lat": 5.5840, "lng": -0.1010, "region": "Greater Accra", "district": "Ledzokuku Municipal", "type": "neighborhood"},
+    "nungua":           {"lat": 5.6010, "lng": -0.0730, "region": "Greater Accra", "district": "Krowor Municipal", "type": "neighborhood"},
+    "sakumono":         {"lat": 5.6240, "lng": -0.0470, "region": "Greater Accra", "district": "Tema West Municipal", "type": "neighborhood"},
+    "adenta":           {"lat": 5.7090, "lng": -0.1620, "region": "Greater Accra", "district": "Adentan Municipal", "type": "town"},
+    "adentan":          {"lat": 5.7090, "lng": -0.1620, "region": "Greater Accra", "district": "Adentan Municipal", "type": "town"},
 }
 
 
@@ -151,3 +171,70 @@ def current_season(month: int | None = None) -> str:
     if month is None:
         month = datetime.now(timezone.utc).month
     return SEASON_BY_MONTH.get(month, "unknown")
+
+
+# ─────────────────────── Region centroids + fallbacks ──────────────────────
+
+# Geographic centre of Ghana — used as the last-resort fallback so the area
+# resolver always returns a usable point instead of failing (404). Matches the
+# default Leaflet view used by the live-events map.
+GHANA_CENTROID = {"lat": 7.95, "lng": -1.02}
+
+# Approximate centroid per region (regional capital coordinates). Lets the
+# area resolver degrade to a region-level point when an exact place can't be
+# geocoded — far better than a hard failure for the operator.
+REGION_CENTROIDS: dict[str, dict] = {
+    "Greater Accra": {"lat": 5.6037, "lng": -0.1870},
+    "Ashanti":       {"lat": 6.6885, "lng": -1.6244},
+    "Eastern":       {"lat": 6.0892, "lng": -0.2596},
+    "Western":       {"lat": 4.9347, "lng": -1.7079},
+    "Central":       {"lat": 5.1054, "lng": -1.2466},
+    "Volta":         {"lat": 6.6111, "lng": 0.4708},
+    "Northern":      {"lat": 9.4008, "lng": -0.8393},
+    "Upper East":    {"lat": 10.7853, "lng": -0.8512},
+    "Upper West":    {"lat": 10.0606, "lng": -2.5057},
+    "Bono":          {"lat": 7.3349, "lng": -2.3265},
+    "Bono East":     {"lat": 7.5867, "lng": -1.9388},
+    "Ahafo":         {"lat": 6.8000, "lng": -2.5167},
+    "Western North": {"lat": 6.2000, "lng": -2.4833},
+    "Oti":           {"lat": 8.0667, "lng": 0.1833},
+    "Savannah":      {"lat": 9.0840, "lng": -1.8181},
+    "North East":    {"lat": 10.5333, "lng": -0.3667},
+}
+
+
+def region_centroid(region: str | None) -> dict | None:
+    """Approximate {lat, lng} for a region name, or None if unknown."""
+    if not region:
+        return None
+    return REGION_CENTROIDS.get(region)
+
+
+def detect_region(text: str) -> str | None:
+    """Best-effort region detection from free-form text. Used by the area
+    resolver's graceful fallback when an exact place can't be geocoded.
+
+    Strategy:
+    1. Explicit region name in the text ("...in the Eastern Region", "Volta").
+       Longest region name wins so "Upper East" beats a stray "East".
+    2. A known place name in the text → that place's region (covers cases like
+       "near Kumasi" where Kumasi is in PLACES with region=Ashanti).
+    """
+    if not text:
+        return None
+    import re
+    raw = text.lower()
+
+    best_region = None
+    best_len = -1
+    for region in REGIONS:
+        if re.search(rf"\b{re.escape(region.lower())}\b", raw) and len(region) > best_len:
+            best_region, best_len = region, len(region)
+    if best_region:
+        return best_region
+
+    # Fall back to any known place mentioned in the text.
+    hit = lookup_place(text)
+    if hit and hit.get("region"):
+        return hit["region"]
+    return None

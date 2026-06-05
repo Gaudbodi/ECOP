@@ -738,6 +738,11 @@ def agents_area():
     didn't supply one, and returns the data the Confirmation modal needs to
     render the zoomed map + alert-type animation."""
     from services.advisory_agent_service import _tool_geocode_ghana_location
+    from services._ghana_reference import (
+        GHANA_CENTROID,
+        detect_region,
+        region_centroid,
+    )
 
     data = request.get_json(silent=True) or {}
     location = (data.get('location') or '').strip()
@@ -750,13 +755,41 @@ def agents_area():
     if not geocode_input:
         return jsonify({"error": "location or description required"}), 400
 
+    approximate = False
     geocoded = _tool_geocode_ghana_location(geocode_input)
     if geocoded.get('error'):
-        return jsonify({
-            "error": "could_not_resolve",
-            "input": geocode_input,
-            "detail": geocoded,
-        }), 404
+        # Graceful degradation (project invariant): never hard-fail the operator.
+        # The exact place couldn't be geocoded — Nominatim is unavailable from
+        # cloud egress IPs (e.g. Render), and the place isn't in the static
+        # table. Fall back to a REGION centroid if we can detect a region from
+        # the text, otherwise the national centroid. The operator can drag/edit
+        # the radius on the confirmation map. Returns 200 with approximate=true
+        # instead of a 404 so the create flow continues.
+        approximate = True
+        detected_region = detect_region(f"{location} {description}")
+        centroid = region_centroid(detected_region)
+        if centroid:
+            geocoded = {
+                "source": "fallback-region",
+                "input": geocode_input,
+                "name": f"{detected_region} (approx.)",
+                "lat": centroid["lat"],
+                "lng": centroid["lng"],
+                "region": detected_region,
+                "district": None,
+                "type": "administrative",
+            }
+        else:
+            geocoded = {
+                "source": "fallback-national",
+                "input": geocode_input,
+                "name": "Ghana (approx.)",
+                "lat": GHANA_CENTROID["lat"],
+                "lng": GHANA_CENTROID["lng"],
+                "region": None,
+                "district": None,
+                "type": "administrative",
+            }
 
     # Honour an explicit non-zero radius from the operator; otherwise infer.
     radius_source = "user"
@@ -787,6 +820,7 @@ def agents_area():
         "label": geocoded.get("name") or geocode_input,
         "event_type": event_type,
         "geocoder": geocoded.get("source"),
+        "approximate": approximate,
     }), 200
 
 

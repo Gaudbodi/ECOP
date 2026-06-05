@@ -265,10 +265,18 @@ export function ManualEntryForm({ onTargetChange, onSubmitted }: ManualEntryForm
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-100"
+            className={
+              resolution.approximate
+                ? 'rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-100'
+                : 'rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-100'
+            }
           >
-            <div className="font-semibold">Area resolved: {resolution.label}</div>
-            <div className="font-mono text-emerald-200/80 mt-0.5">
+            <div className="font-semibold">
+              {resolution.approximate
+                ? `Approximate area: ${resolution.label} — exact place not found, using ${resolution.region ? 'region' : 'national'} centre. Verify the pin & radius on the map.`
+                : `Area resolved: ${resolution.label}`}
+            </div>
+            <div className={`font-mono mt-0.5 ${resolution.approximate ? 'text-amber-200/80' : 'text-emerald-200/80'}`}>
               {resolution.lat.toFixed(4)}, {resolution.lon.toFixed(4)} · {resolution.radius_km} km
               {' · '}radius source: {resolution.radius_source}
               {resolution.region ? ` · ${resolution.region}` : ''}
