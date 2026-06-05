@@ -67,7 +67,19 @@ export function useAlerts(): UseAlertsState {
       // Dedup by identifier (process_alert_logic upserts; a re-emission of
       // the same identifier should replace, not duplicate, the existing
       // entry).
-      setAlerts((prev) => [a, ...prev.filter((x) => x.identifier !== a.identifier)])
+      //
+      // IMPORTANT: a re-emission for an ALREADY-PRESENT identifier must patch
+      // that entry IN PLACE (same array index, swap only that element) — it
+      // must NOT prepend-and-reorder. Reordering an existing card to the top
+      // forces `motion.div layout` (AlertCard.tsx) to remount the card
+      // subtree, which tears down any open lifecycle dialog mid-flow and
+      // discards a half-typed Terminate/Extend reason. Only a genuinely-new
+      // identifier is prepended.
+      setAlerts((prev) =>
+        prev.some((x) => x.identifier === a.identifier)
+          ? prev.map((x) => (x.identifier === a.identifier ? a : x))
+          : [a, ...prev],
+      )
     }
     function onUpdated(a: CapAlert) {
       setAlerts((prev) => prev.map((x) => (x.identifier === a.identifier ? a : x)))
@@ -81,7 +93,14 @@ export function useAlerts(): UseAlertsState {
   }, [])
 
   const addAlert = useCallback((a: CapAlert) => {
-    setAlerts((prev) => [a, ...prev.filter((x) => x.identifier !== a.identifier)])
+    // Mirror onNew: patch an already-present identifier in place (no reorder),
+    // prepend only a genuinely-new identifier. Keeps the dedup guarantee
+    // without remounting an existing card subtree.
+    setAlerts((prev) =>
+      prev.some((x) => x.identifier === a.identifier)
+        ? prev.map((x) => (x.identifier === a.identifier ? a : x))
+        : [a, ...prev],
+    )
   }, [])
 
   const updateAlert = useCallback((identifier: string, patch: Partial<CapAlert>) => {
