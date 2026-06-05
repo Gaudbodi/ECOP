@@ -307,3 +307,97 @@ def test_dispatcher_test_creates_alert_visible_via_alerts_list(auth_client):
     post_ids = {a["identifier"] for a in post["alerts"]}
     assert new_id in post_ids
     assert new_id not in pre_ids  # truly new
+
+
+# ─────────────────────── Phase 11: role-matrix enforcement tests ───────────────────────
+
+_MINIMAL_CREATE_BODY = {
+    "headline": "T",
+    "description": "d",
+    "severity": "Moderate",
+    "latitude": "",
+    "longitude": "",
+}
+
+
+def test_manual_alert_denies_validator(app):
+    """Phase 11 REQ-role-matrix-create-gate: a cap validator POSTing the
+    create endpoint is denied 403 before any alert is persisted.
+    The 403 gate fires before process_alert_logic so Mongo is not touched."""
+    with app.test_client() as c:
+        with c.session_transaction() as s:
+            s["user"] = {
+                "staff_id": "V001",
+                "name": "Validator User",
+                "agency": "GMeT",
+                "role": "cap validator",
+                "email": "validator@example.com",
+            }
+        r = c.post("/api/v1/alerts/manual", json=_MINIMAL_CREATE_BODY)
+    assert r.status_code == 403
+    assert r.get_json() == {"error": "Unauthorized"}
+
+
+def test_manual_alert_allows_generator_pending(app):
+    """Phase 11 REQ-role-matrix-create-gate: a cap generator can create an
+    alert and it lands at workflow_stage 1 (pending validation)."""
+    with app.test_client() as c:
+        with c.session_transaction() as s:
+            s["user"] = {
+                "staff_id": "G001",
+                "name": "Generator User",
+                "agency": "GMeT",
+                "role": "cap generator",
+                "email": "generator@example.com",
+            }
+        r = c.post("/api/v1/alerts/manual", json=_MINIMAL_CREATE_BODY)
+    assert r.status_code == 201
+    body = r.get_json()
+    assert body["status"] == "success"
+    assert body["message"] == "Alert submitted for validation"
+
+
+def test_manual_alert_allows_admin_dispatch(auth_client):
+    """Phase 11 REQ-role-matrix-create-gate: an Admin can create an alert
+    and it lands at workflow_stage 3 (direct dispatch)."""
+    r = auth_client.post("/api/v1/alerts/manual", json=_MINIMAL_CREATE_BODY)
+    assert r.status_code == 201
+    body = r.get_json()
+    assert body["status"] == "success"
+    assert body["message"] == "Alert dispatched"
+
+
+def test_validate_alert_denies_generator(app):
+    """Phase 11 REQ-role-matrix-validate-gate: a cap generator POSTing the
+    validate endpoint is denied 403. The gate fires before the 404 not-found
+    path, proving role is checked first (already-gated L409 made explicit)."""
+    with app.test_client() as c:
+        with c.session_transaction() as s:
+            s["user"] = {
+                "staff_id": "G001",
+                "name": "Generator User",
+                "agency": "GMeT",
+                "role": "cap generator",
+                "email": "generator@example.com",
+            }
+        r = c.post("/api/v1/alerts/validate/NONEXISTENT-ID", json={"action": "approve"})
+    assert r.status_code == 403
+    assert r.get_json() == {"error": "Unauthorized"}
+
+
+def test_terminate_alert_denies_generator(app):
+    """Phase 11 REQ-role-matrix-lifecycle-gate: a cap generator POSTing the
+    terminate endpoint is denied 403. The gate fires before the 404 not-found
+    path, locking _LIFECYCLE_ROLES (L465) against silent regression."""
+    with app.test_client() as c:
+        with c.session_transaction() as s:
+            s["user"] = {
+                "staff_id": "G001",
+                "name": "Generator User",
+                "agency": "GMeT",
+                "role": "cap generator",
+                "email": "generator@example.com",
+            }
+        r = c.post("/api/v1/alerts/NONEXISTENT-ID/terminate", json={"reason": "test"})
+    assert r.status_code == 403
+    assert r.get_json() == {"error": "Unauthorized"}
