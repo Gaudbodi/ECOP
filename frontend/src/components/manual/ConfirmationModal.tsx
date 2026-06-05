@@ -58,7 +58,7 @@ export function ConfirmationModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.96 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="glass-card w-full max-w-5xl max-h-[92vh] overflow-y-auto"
+            className="glass-card glass-dialog w-full max-w-5xl max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

@@ -55,7 +55,7 @@ export function TerminateDialog({
       }}
       className="bg-transparent text-white p-0 backdrop:bg-black/60"
     >
-      <GlassCard variant="card" className="w-[30rem] max-w-[90vw]">
+      <GlassCard variant="card" className="glass-dialog w-[30rem] max-w-[90vw]">
         <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-amber-300/80 mb-1">
           End active alert · CAP Cancel
         </p>
@@ -166,7 +166,7 @@ export function ExtendDialog({
       }}
       className="bg-transparent text-white p-0 backdrop:bg-black/60"
     >
-      <GlassCard variant="card" className="w-[34rem] max-w-[92vw]">
+      <GlassCard variant="card" className="glass-dialog w-[34rem] max-w-[92vw]">
         <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-rose-300/80 mb-1">
           Worsening situation · CAP Update
         </p>
