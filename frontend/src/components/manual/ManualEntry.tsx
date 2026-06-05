@@ -4,6 +4,7 @@ import { GlassCard } from '../ui/GlassCard'
 import { ManualEntryForm } from './ManualEntryForm'
 import { MapPanel } from './MapPanel'
 import type { MapTarget } from './MapPanel'
+import type { User, Role } from '../../api/types'
 
 /**
  * ManualEntry — Phase-5/6 redesigned manual alert flow.
@@ -19,9 +20,43 @@ import type { MapTarget } from './MapPanel'
  * The agent endpoint `/api/v1/agents/area` does the geocode + radius
  * inference. The map is read from `target` state owned here so the form,
  * the live map, and the confirmation modal all stay in sync.
+ *
+ * Role gate (defense-in-depth):
+ * TabNav already hides the Manual Entry tab for validators, but we also
+ * gate here so that a validator who reaches this component (stale state,
+ * future deep-linking) sees a clean denial card instead of a usable form.
+ * Mirrors the LifecycleControls array-includes idiom and the TabNav L23
+ * allowlist. Server enforcement (Plan 11-01 /api/v1/alerts/manual 403) is
+ * the authoritative boundary — this is UX/defense-in-depth only.
  */
-export function ManualEntry() {
+
+// Mirrors TabNav L23 and LifecycleControls array-includes idiom.
+// Never redeclare role string literals — Role from types.ts is the source of truth.
+const CREATE_ROLES: Role[] = ['cap generator', 'Admin', 'Super Admin']
+
+export function ManualEntry({ user }: { user: User | null }) {
+  // RULES OF HOOKS: call all hooks before any conditional return.
   const [target, setTarget] = useState<MapTarget | null>(null)
+
+  // Role gate — deny non-creator roles with a clean empty state.
+  if (!user || !CREATE_ROLES.includes(user.role)) {
+    return (
+      <GlassCard className="p-5 sm:p-7">
+        <p className="text-xs font-mono uppercase tracking-[0.22em] text-sky-300/80 mb-1">
+          Access Denied
+        </p>
+        <h2 className="text-2xl sm:text-3xl font-bold leading-tight mb-3">
+          No permission to create alerts
+        </h2>
+        <p className="text-sm text-white/60 max-w-xl">
+          Your role{user ? ` (${user.role})` : ''} cannot generate CAP alerts.
+          Only cap generators, Admins, and Super Admins have access to this
+          form. Contact an administrator if you need to be granted this
+          permission.
+        </p>
+      </GlassCard>
+    )
+  }
 
   return (
     <div className="space-y-4">
