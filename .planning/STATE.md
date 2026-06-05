@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: milestone
-status: executing
-stopped_at: "Phase 4 COMPLETE: all five plans shipped + Plan 04-05 Task 2 (human-verify, 7 ROADMAP §90 criteria) cleared autonomously via Playwright E2E (tests/e2e_smoke.py, 20/20 PASS). Provider migration also shipped: Anthropic→Gemma 4 (Gemini API), SMTP→Resend, Khaya removed (commit 2070a2c)."
-last_updated: "2026-05-09T22:10:00Z"
-last_activity: 2026-05-09
+status: phase_complete
+stopped_at: Plan 04-05 PARTIAL — Tasks 1 (cleanup) + 3 (docs) complete; Task 2 (human-verify) PENDING operator approval covering the 7 ROADMAP §90 success criteria
+last_updated: "2026-06-05T11:06:20.192Z"
+last_activity: 2026-06-05 -- Phase 11 execution started
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 1
-  total_plans: 5
+  total_plans: 7
   completed_plans: 5
-  percent: 100
+  percent: 71
 ---
 
 # Project State
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-09)
 
 **Core value:** A national emergency nexus that auto-dispatches GMeT alerts within 5 seconds, lets operators draft alerts in natural language with AI assistance, broadcasts to telecom + a public TV-display URL, and is hardened for production with real 2FA + automated tests.
-**Current focus:** Phase 04 — Frontend Migration to React + Vite + TypeScript + Tailwind + framer-motion
+**Current focus:** Phase 11 — role-based-workflow-enforcement
 
 ## Current Position
 
-Phase: 04 (Frontend Migration to React + Vite + TypeScript + Tailwind + framer-motion) — COMPLETE (autonomous E2E PASS)
-Plan: 5 of 5 (all tasks shipped; Task 2 human-verify cleared via Playwright E2E)
+Phase: 11 (role-based-workflow-enforcement) — COMPLETE (verified 13/13 must-haves)
+Plan: 2 of 2 (both complete)
 Milestone: 1 of N (National Emergency Nexus)
 Phases shipped: 1, 2, 3, 4, 6, 8, 9 (backend portion) — 7 of 10
 Phases remaining: 5 (Map UX), 7 (Globe + UI Polish), 9 (Playwright E2E — full coverage), 10 (Full E2E Acceptance)
-Status: Phase 4 fully verified autonomously (tests/e2e_smoke.py 20/20). Provider migration to Gemma 4 + Resend also shipped (commit 2070a2c).
-Last activity: 2026-06-05 - Completed quick task 260605-eh8: opaque modal surfaces
+Status: Phase 11 complete — role matrix enforced server-side + frontend, VERIFICATION passed
+Last activity: 2026-06-05 -- Phase 11 complete (role-based workflow enforcement)
 
 Progress: [██████████] 100%
 

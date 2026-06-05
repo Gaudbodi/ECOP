@@ -193,15 +193,15 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 8. Public Display Endpoint | 0/TBD | Not started | - |
 | 9. Tests + Visual Regression | 0/TBD | Not started | - |
 | 10. Full E2E Acceptance — PRD §6 + Overhaul Acceptance | 0/TBD | Not started | - |
-| 11. Role-based workflow enforcement | 0/2 | Planned (2 plans, 1 wave) | - |
+| 11. Role-based workflow enforcement | 2/2 | Complete   | 2026-06-05 |
 
 ### Phase 11: Role-based workflow enforcement — generators create+view, validators validate+view, admins both (API + React UI gating, /api/v1/me)
 
 **Goal:** Make the existing three-role model (cap generator, cap validator, Admin/Super Admin) coherent end-to-end by enforcing the LOCKED role matrix at both layers: server-side on every alert-mutation endpoint (create denied for validators, validate/lifecycle denied for generators, view open to all authenticated roles) and as defense-in-depth in the React SPA (hide/deny the create form for non-creator roles). `/api/v1/me` already exposes role+agency. The single load-bearing fix is the missing role gate on `manual_alert` (a validator can currently create AND auto-dispatch). Not a new RBAC framework — formal RBAC stays deferred to Milestone 2+.
 **Requirements**: REQ-role-matrix-api-enforcement, REQ-role-matrix-create-gate, REQ-role-matrix-validate-gate, REQ-role-matrix-lifecycle-gate, REQ-role-matrix-frontend-gating
 **Depends on:** Phase 10
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 11-01-PLAN.md — Backend create-role gate on manual_alert + four-place sync verification + role-matrix endpoint tests
-- [ ] 11-02-PLAN.md — Frontend defense-in-depth: pass user into ManualEntry and gate the create form to creator roles
+- [x] 11-01-PLAN.md — Backend create-role gate on manual_alert + four-place sync verification + role-matrix endpoint tests
+- [x] 11-02-PLAN.md — Frontend defense-in-depth: pass user into ManualEntry and gate the create form to creator roles
