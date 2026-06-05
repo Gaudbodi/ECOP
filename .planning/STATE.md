@@ -31,7 +31,7 @@ Milestone: 1 of N (National Emergency Nexus)
 Phases shipped: 1, 2, 3, 4, 6, 8, 9 (backend portion) — 7 of 10
 Phases remaining: 5 (Map UX), 7 (Globe + UI Polish), 9 (Playwright E2E — full coverage), 10 (Full E2E Acceptance)
 Status: Phase 4 fully verified autonomously (tests/e2e_smoke.py 20/20). Provider migration to Gemma 4 + Resend also shipped (commit 2070a2c).
-Last activity: 2026-06-05 - Completed quick task 260605-dzy: login/verification animated background
+Last activity: 2026-06-05 - Completed quick task 260605-e7h: termination modal abrupt-close fix
 
 Progress: [██████████] 100%
 
@@ -116,6 +116,7 @@ None yet. Capture ideas via `/gsd-add-todo` during execution.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260605-dzy | Add abstract animated background to login/verification pages | 2026-06-05 | bbcef86 | [260605-dzy-add-abstract-animated-background-to-logi](./quick/260605-dzy-add-abstract-animated-background-to-logi/) |
+| 260605-e7h | Fix alert termination modal closing abruptly (socket reorder remount) | 2026-06-05 | cec330d | [260605-e7h-fix-alert-termination-modal-closing-abru](./quick/260605-e7h-fix-alert-termination-modal-closing-abru/) |
 
 ## Deferred Items
 
